@@ -4,16 +4,16 @@ import operator
 import re
 import sys
 
-OPERATOR = re.compile('^(>> )(?:(\d+)([=≠><≥≤+−±×÷^%∆∩∪⊆⊂⊄⊅⊃⊇\∈∉])(\d+)|((\|)|(⌈)|(⌊))(\d+)((?(2)\||(?(3)⌉|⌋)))|([√∑∏#])(\d+)|(\d+)([!’]))$')
-STREAM = re.compile('^(>>? )(?:(Output )(\d+ )*(\d+)|(Input(?:All)?)|(Error ?)(\d+)?)$')
-NILAD = re.compile('''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]]))$''')
-LOOP = re.compile('^(>> )(?:(While|For|If)( \d+){2})|(?:(Each )(\d+))$')
+OPERATOR = re.compile(r'''^(>> )(?:(\d+)([=≠><≥≤+−±×÷^%∆∩∪⊆⊂⊄⊅⊃⊇\\∈∉])(\d+)|((\|)|(⌈)|(⌊))(\d+)((?(2)\||(?(3)⌉|⌋)))|([√∑∏#])(\d+)|(\d+)([!’]))$''')
+STREAM = re.compile(r'''^(>>? )(?:(Output )(\d+ )*(\d+)|(Input(?:All)?)|(Error ?)(\d+)?)$''')
+NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]]))$''')
+LOOP = re.compile(r'''^(>> )(?:(While|For|If)( \d+){2})|(?:(Each )(\d+))$''')
 INFIX = '=≠><≥≤+−±×÷*%∆∩∪⊆⊂⊄⊅⊃⊇\∈∉∧∨⊕'
 PREFIX = '∑∏#√'
 POSTFIX = '!’'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
 REGEXES = [OPERATOR, STREAM, NILAD, LOOP]
-STDIN = iter(list(map(eval, sys.stdin.read())) + [0])
+CONST_STDIN = sys.stdin.read()
 
 INFIX_ATOMS = {
 
@@ -77,6 +77,8 @@ def deduplicate(array):
     return final
 
 def execute(tokens, index=-1):
+    if not tokens:
+        return
     line = tokens[index]
     mode = line[0].count('>')
     if mode == 1:
@@ -139,14 +141,21 @@ def tokenizer(code):
                 final.append(tokenise(regex, line))
     return final
 
-def tryeval(value):
+def tryeval(value, stdin=True):
     try:
         return eval(value)
     except:
-        if value == 'Input': return next(STDIN)
-    return 0
+        if not stdin:
+            return value
+        if value == 'Input':
+            return next(STDIN)
+        if value == 'InputAll':
+            return CONST_STDIN
+    return value
 
-if __name__ == '__main__' and False:
+STDIN = iter(list(map(lambda a: tryeval(a, stdin=False), CONST_STDIN.split('\n'))) + [0])
+
+if __name__ == '__main__':
     program = sys.argv[1]
     try:
         program = open(program, 'r', encoding='utf-8').read()
