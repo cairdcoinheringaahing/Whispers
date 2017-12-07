@@ -10,7 +10,7 @@ POSTFIX = '!’'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
 
 OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|((\|)|(⌈)|(⌊))(\d+|[LR])((?(2)\||(?(3)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
-STREAM = re.compile(r'''^(>>? )(?:(Output )(\d+|[LR] )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
+STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
 NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]]))$''')
 LOOP = re.compile(r'''^(>> )(While|For|If|Each|Cycle)((?: \d+|[LR])+)$''')
 REGEXES = [OPERATOR, STREAM, NILAD, LOOP]
