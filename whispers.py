@@ -4,17 +4,27 @@ import operator
 import re
 import sys
 
+sys.setrecursionlimit(1 << 16)
+
 INFIX = '=≠><≥≤+−±×÷*%∆∩∪⊆⊂⊄⊅⊃⊇\∈∉«»'
 PREFIX = "∑∏#√?'"
 POSTFIX = '!’'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
+EXTENSION = ['Reduce', 'Cumulate', 'Range']
 
 OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|((\|)|(⌈)|(⌊))(\d+|[LR])((?(2)\||(?(3)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
 STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
 NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]]))$''')
 LOOP = re.compile(r'''^(>> )(While|For|If|Each|Cycle)((?: \d+|[LR])+)$''')
-REGEXES = [OPERATOR, STREAM, NILAD, LOOP]
+EXT = re.compile(r'''^(>> )(E:(?:{}))((?: \d+|[LR])+)$'''.format('|'.join(EXTENSION)))
+REGEXES = [OPERATOR, STREAM, NILAD, LOOP, EXT]
 CONST_STDIN = sys.stdin.read()
+
+EXTENSION_ATOMS = {
+
+    'E:Range':lambda a: list(range(1, a+1)),
+
+}
 
 INFIX_ATOMS = {
 
@@ -168,6 +178,11 @@ def execute(tokens, index=-1, left=None, right=None):
             if len(final) == 1:
                 return final[0]
             return final
+
+    if EXT.search(joined):
+        target = list(map(lambda a: int(a)-1, line[2].split()))[0]
+        atom = EXTENSION_ATOMS[line[1]]
+        return atom(execute(tokens, target))
 
 def prime(n):
     for i in range(2, int(n)):
