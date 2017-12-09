@@ -219,8 +219,10 @@ def tryeval(value, stdin=True):
 
 if __name__ == '__main__':
     program = sys.argv[1]
+    flag = sys.argv[2] in ['--tokens', '-t'] if len(sys.argv) > 2 else False
     try:
         program = open(program, 'r', encoding='utf-8').read()
     except:
         pass
-    execute(tokenizer(program, CONST_STDIN))
+    if flag: print(tokenizer(program, CONST_STDIN))
+    else: execute(tokenizer(program, CONST_STDIN))
