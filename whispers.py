@@ -6,7 +6,7 @@ import sys
 
 sys.setrecursionlimit(1 << 16)
 
-INFIX = '=≠><≥≤+−±×÷*%∆∩∪⊆⊂⊄⊅⊃⊇\∈∉«»'
+INFIX = '=≠><≥≤+-±×÷*%∆∩∪⊆⊂⊄⊅⊃⊇\∈∉«»'
 PREFIX = "∑∏#√?'"
 POSTFIX = '!’'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
