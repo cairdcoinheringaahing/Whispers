@@ -129,6 +129,10 @@ def execute(tokens, index=-1, left=None, right=None):
             atom = SURROUND_ATOMS[line[0] + line[2]]
             target = int(line[1])-1
             return atom(execute(tokens, target))
+        
+        if line[0] == 'Setline':
+            old, new, *_ = line[1:]
+            tokens[execute(tokens, old)] = tokenise(execute(tokens, new))
 
     if STREAM.search(joined):
         if line[1] == 'Output ':
