@@ -203,8 +203,8 @@ def tokenise(regex, string):
 
 def tokenizer(code, stdin):
     for line in stdin.split('\n'):
-        try: code = code.replace('> Input', '> {}'.format(eval(line)), 1)
-        except: code = code.replace('> Input', '> "{}"'.format(line), 1)
+        try: code = code.replace('> Input\n', '> {}\n'.format(eval(line)), 1)
+        except: code = code.replace('> Input\n', '> "{}"\n'.format(line), 1)
     code = code.split('\n')
     final = []
     for line in code:
