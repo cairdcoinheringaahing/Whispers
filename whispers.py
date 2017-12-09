@@ -15,7 +15,7 @@ EXTENSION = ['Reduce', 'Cumulate', 'Range']
 OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|((\|)|(⌈)|(⌊))(\d+|[LR])((?(2)\||(?(3)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
 STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
 NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]]))$''')
-LOOP = re.compile(r'''^(>> )(While|For|If|Each|Cycle)((?: \d+|[LR])+)$''')
+LOOP = re.compile(r'''^(>> )(While|For|If|Each|DoWhile)((?: \d+|[LR])+)$''')
 EXT = re.compile(r'''^(>> )(E:(?:{}))((?: \d+|[LR])+)$'''.format('|'.join(EXTENSION)))
 REGEXES = [OPERATOR, STREAM, NILAD, LOOP, EXT]
 CONST_STDIN = sys.stdin.read()
@@ -145,6 +145,12 @@ def execute(tokens, index=-1, left=None, right=None):
 
         if loop == 'While':
             cond, call, *_ = targets
+            while execute(tokens, cond):
+                execute(tokens, call)
+                
+        if loop == 'DoWhile':
+            cond, call, *_ = targets
+            execute(tokens, call)
             while execute(tokens, cond):
                 execute(tokens, call)
 
