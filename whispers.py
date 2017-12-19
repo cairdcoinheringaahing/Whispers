@@ -108,14 +108,14 @@ def execute(tokens, index=-1, left=None, right=None):
         if line[0] in PREFIX:
             assert len(line) == 2
             atom = PREFIX_ATOMS[line[0]]
-            target = left if line[1] == 'L' else int(line[1])-1
-            return atom(execute(tokens, target))
+            target = left if line[1] == 'L' else execute(tokens, int(line[1])-1)
+            return atom(target)
 
         if line[1] in POSTFIX:
             assert len(line) == 2
             atom = POSTFIX_ATOMS[line[1]]
-            target = left if line[0] == 'L' else int(line[0])-1
-            return atom(execute(tokens, target))
+            target = left if line[0] == 'L' else execute(tokens, int(line[0])-1)
+            return atom(target)
 
         if line[1] in INFIX:
             assert len(line) == 3
