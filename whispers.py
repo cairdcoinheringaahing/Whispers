@@ -15,7 +15,7 @@ EXTENSION = ['Reduce', 'Cumulate', 'Range']
 OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|((\|)|(⌈)|(⌊))(\d+|[LR])((?(6)\||(?(7)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
 STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
 NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]]))$''')
-LOOP = re.compile(r'''^(>> )(While|For|If|Each|DoWhile|Setline)((?: \d+|[LR])+)$''')
+LOOP = re.compile(r'''^(>> )(While|For|If|Each|DoWhile|Then)((?: \d+|[LR])+)$''')
 EXT = re.compile(r'''^(>> )(E:(?:{}))((?: \d+|[LR])+)$'''.format('|'.join(EXTENSION)))
 REGEXES = [OPERATOR, STREAM, NILAD, LOOP, EXT]
 CONST_STDIN = sys.stdin.read()
@@ -129,16 +129,12 @@ def execute(tokens, index=-1, left=None, right=None):
             atom = SURROUND_ATOMS[line[0] + line[2]]
             target = int(line[1])-1
             return atom(execute(tokens, target))
-        
-        if line[0] == 'Setline':
-            old, new, *_ = line[1:]
-            tokens[execute(tokens, old)] = tokenise(execute(tokens, new))
 
     if STREAM.search(joined):
         if line[1] == 'Output ':
             targets = line[2:]
             for target in targets:
-                print(execute(tokens, int(target)-1), end='')
+                print(execute(tokens, int(target)-1))
         if line[1].strip() == 'Error':
             print(execute(tokens, int(line[2])-1), file=sys.stderr)
             sys.exit()
@@ -188,6 +184,10 @@ def execute(tokens, index=-1, left=None, right=None):
             if len(final) == 1:
                 return final[0]
             return final
+        
+        if loop == 'Then':
+            for ln in targets:
+                execute(tokens, ln)
 
     if EXT.search(joined):
         target = list(map(lambda a: int(a)-1, line[2].split()))[0]
