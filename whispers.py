@@ -84,13 +84,6 @@ SURROUND_ATOMS = {
 
 }
 
-def deduplicate(array):
-    final = []
-    for element in array:
-        if element not in final:
-            final.append(element)
-    return final
-
 def execute(tokens, index=-1, left=None, right=None):
     if not tokens:
         return
@@ -203,7 +196,7 @@ def tokenise(regex, string):
     result = list(filter(None, regex.match(string).groups()))
     if result[0] == '> ':
         return result[:2]
-    return deduplicate(result)
+    return result
 
 def tokenizer(code, stdin):
     for line in stdin.split('\n'):
