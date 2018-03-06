@@ -7,7 +7,7 @@ import sys
 sys.setrecursionlimit(1 << 16)
 
 INFIX = '=≠><≥≤+-±×÷*%∆∩∪⊆⊂⊄⊅⊃⊇\∈∉«»'
-PREFIX = "∑∏#√?'"
+PREFIX = "∑∏#√?'Γ"
 POSTFIX = '!’'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
 EXTENSION = ['Reduce', 'Cumulate', 'Range']
@@ -66,6 +66,7 @@ PREFIX_ATOMS = {
     '√':lambda a: math.sqrt(a),
     "'":lambda a: chr(a),
     '?':lambda a: ord(a),
+    'Γ':lambda a: math.gamma(a),
 
 }
 
