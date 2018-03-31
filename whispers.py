@@ -1,4 +1,5 @@
 import functools
+import itertools
 import math
 import operator
 import re
@@ -6,15 +7,23 @@ import sys
 
 sys.setrecursionlimit(1 << 16)
 
-INFIX = '=≠><≥≤+-±×÷*%∆∩∪⊆⊂⊄⊅⊃⊇\∈∉«»'
-PREFIX = "∑∏#√?'Γ"
-POSTFIX = '!’'
+B = chr(120121)
+U = chr(120140)
+
+# ∅ = set()
+φ = (1 + 5 ** 0.5) / 2
+π = math.pi
+e = math.e
+
+INFIX = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔'
+PREFIX = "∑∏#√?'Γ∤℘ℑℜ∁≺≻"
+POSTFIX = '!’#'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
-EXTENSION = ['Reduce', 'Cumulate', 'Range']
+EXTENSION = ['Range']
 
 OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|((\|)|(⌈)|(⌊))(\d+|[LR])((?(6)\||(?(7)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
 STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
-NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]]))$''')
+NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]])|(1j|∅|φ|π|e|""|''|\[]|{}))$''')
 LOOP = re.compile(r'''^(>> )(While|For|If|Each|DoWhile|Then)((?: \d+|[LR])+)$''')
 EXT = re.compile(r'''^(>> )(E:(?:{}))((?: \d+|[LR])+)$'''.format('|'.join(EXTENSION)))
 REGEXES = [OPERATOR, STREAM, NILAD, LOOP, EXT]
@@ -38,6 +47,7 @@ INFIX_ATOMS = {
     '-':lambda a, b: a - b,
     '±':lambda a, b: [a+b, a-b],
     '×':lambda a, b: a * b,
+    '⋅':lambda a, b: set(map(frozenset, itertools.product(a, b))),
     '÷':lambda a, b: a / b,
     '*':lambda a, b: a ** b,
     '%':lambda a, b: a % b,
@@ -50,11 +60,15 @@ INFIX_ATOMS = {
     '⊅':lambda a, b: not a.issuperset(b),
     '⊃':lambda a, b: a != b and a.issuperset(b),
     '⊇':lambda a, b: a.issuperset(b),
-    '\\':lambda a, b: set(i for i in a if i not in b),
+    '∖':lambda a, b: set(i for i in a if i not in b),
     '∈':lambda a, b: a in b,
     '∉':lambda a, b: a not in b,
     '«':lambda a, b: min(a, b),
     '»':lambda a, b: max(a, b),
+    '∣':lambda a, b: not (a % b),
+    '∤':lambda a, b: bool(a % b),
+    '⊓':lambda a, b: math.gcd(a, b),
+    '⊔':lambda a, b: a*b//math.gcd(a, b)
 
 }
 
@@ -67,6 +81,13 @@ PREFIX_ATOMS = {
     "'":lambda a: chr(a),
     '?':lambda a: ord(a),
     'Γ':lambda a: math.gamma(a),
+    '∤':lambda a: [i for i in range(1, a+1) if a%i == 0],
+    '℘':lambda a: set(map(frozenset, itertools.powerset(a))),
+    'ℑ':lambda a: complex(a).imag,
+    'ℜ':lambda a: complex(a).real,
+    '∁':lambda a: complex(a).conjugate,
+    '≺':lambda a: a - 1,
+    '≻':lambda a: a + 1,
 
 }
 
@@ -74,6 +95,7 @@ POSTFIX_ATOMS = {
 
     '!':lambda a: math.factorial(a),
     '’':lambda a: prime(a),
+    '#':lambda a: functools.reduce(operator.mul, [i for i in range(1, a+1) if prime(i)]),
 
 }
 
@@ -128,9 +150,9 @@ def execute(tokens, index=-1, left=None, right=None):
         if line[1] == 'Output ':
             targets = line[2:]
             for target in targets:
-                print(execute(tokens, int(target)-1))
+                output(execute(tokens, int(target)-1))
         if line[1].strip() == 'Error':
-            print(execute(tokens, int(line[2])-1), file=sys.stderr)
+            output(execute(tokens, int(line[2])-1), -1)
             sys.exit()
 
     if LOOP.search(joined):
@@ -188,6 +210,25 @@ def execute(tokens, index=-1, left=None, right=None):
         atom = EXTENSION_ATOMS[line[1]]
         return atom(execute(tokens, target))
 
+def output(value, file = 1):
+    if file < 0:
+        file = sys.stderr
+    elif file == 0:
+        file = sys.stdin
+    else:
+        file = sys.stdout
+
+    if type(value) in [set, frozenset]:
+        print(end = '{', file = file)
+        for v in list(value)[:-1]:
+            if type(v) == frozenset:
+                v = set(v)
+            print(v, end = ', ', file = file)
+        if value: print(list(value)[-1], '}', sep = '', file = file)
+        else: print('}', file = file)
+    else:
+        print(value, file = file)
+
 def prime(n):
     for i in range(2, int(n)):
         if n%i == 0: return False
@@ -212,6 +253,7 @@ def tokenizer(code, stdin):
     return final
 
 def tryeval(value, stdin=True):
+    if value == '∅': value = 'set()'
     try:
         return eval(value)
     except:
