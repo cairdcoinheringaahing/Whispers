@@ -7,22 +7,27 @@ import sys
 
 sys.setrecursionlimit(1 << 16)
 
+B = chr(120121)
+U = chr(120140)
+
 φ = (1 + 5 ** 0.5) / 2
 π = math.pi
 e = math.e
 
-INFIX = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔'
+PRED = '𝔹ℂℕℙℝ𝕌ℤ¬⊤⊥'
+INFIX = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘'
 PREFIX = "∑∏#√?'Γ∤℘ℑℜ∁≺≻"
 POSTFIX = '!’#'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
 EXTENSION = ['Range']
 
+PREDICATE = re.compile(r'''^(>>> )([∀∃∄⊤⊥])((?:\d|[{}])+)$'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX))
 OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|((\|)|(⌈)|(⌊))(\d+|[LR])((?(6)\||(?(7)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
 STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
 NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]])|(1j|∅|φ|π|e|""|''|\[]|{}))$''')
 LOOP = re.compile(r'''^(>> )(While|For|If|Each|DoWhile|Then)((?: \d+|[LR])+)$''')
 EXT = re.compile(r'''^(>> )(E:(?:{}))((?: \d+|[LR])+)$'''.format('|'.join(EXTENSION)))
-REGEXES = [OPERATOR, STREAM, NILAD, LOOP, EXT]
+REGEXES = [PREDICATE, OPERATOR, STREAM, NILAD, LOOP, EXT]
 CONST_STDIN = sys.stdin.read()
 
 EXTENSION_ATOMS = {
@@ -64,7 +69,7 @@ INFIX_ATOMS = {
     '∣':lambda a, b: not (a % b),
     '∤':lambda a, b: bool(a % b),
     '⊓':lambda a, b: math.gcd(a, b),
-    '⊔':lambda a, b: a*b//math.gcd(a, b)
+    '⊔':lambda a, b: a*b//math.gcd(a, b),
 
 }
 
@@ -103,6 +108,70 @@ SURROUND_ATOMS = {
 
 }
 
+PREDICATE_ATOMS = {
+
+    '𝔹':lambda a: a in [True, False],
+    'ℂ':lambda a: type(a) == complex,
+    'ℕ':lambda a: type(a) == int and a > 0,
+    'ℙ':lambda a: prime(a),
+    'ℝ':lambda a: type(a) in [int, float],
+    '𝕌':lambda a: type(a) in [int, float, complex] or a in [True, False],
+    'ℤ':lambda a: type(a) == int,
+    '¬':lambda a: not a,
+    '⊤':lambda a: True,
+    '⊥':lambda a: False,
+
+}
+
+JUNCTION_ATOMS = {
+
+    '∘':lambda a, b: a == b,
+    '∧':lambda a, b: a & b,
+    '∨':lambda a, b: a | b,
+    '⊕':lambda a, b: a ^ b,
+
+}
+
+def runpredicate(code, value):
+    segments = re.split(r'[∘∧∨⊕]', code)
+    junctions = re.sub(r'[^∘∧∨⊕]', '', code)
+    index = 0
+    results = [True] * len(segments)
+
+    for index, segment in enumerate(segments):
+        cin = 0
+        called = False
+        while cin < len(segment):
+            
+            char = segment[cin]
+            called = False
+                
+            if char in INFIX:
+                try: right = eval(segment[cin + 1])
+                except: right = value
+                results[index] = INFIX_ATOMS[char](value, right)
+                cin += 1
+            if char in PREFIX:
+                results[index] = PREFIX_ATOMS[char](value)
+            if char in POSTFIX:
+                results[index] = POSTFIX_ATOMS[char](value)
+
+            if char in PREDICATE_ATOMS.keys():
+                if called:
+                    results[index] = PREDICATE_ATOMS[char](results[index])
+                else:
+                    results[index] = PREDICATE_ATOMS[char](value)
+
+            cin += 1
+
+    final = results.pop(0)
+    jindex = 0
+    while results:
+        cmd = JUNCTION_ATOMS[junctions[jindex]]
+        final = cmd(final, results.pop(0))
+        
+    return '⊤' if final else '⊥'
+
 def execute(tokens, index=-1, left=None, right=None):
     if not tokens:
         return
@@ -114,28 +183,47 @@ def execute(tokens, index=-1, left=None, right=None):
 
     joined = ''.join(line)
 
+    if PREDICATE.search(joined):
+        line = line[1:]
+
+        mode, pred = line
+        if mode == '∀':
+            ret = all(runpredicate(pred, value) == '⊤' for value in left)
+        if mode == '∃':
+            ret = any(runpredicate(pred, value) == '⊤' for value in left)
+        if mode == '∄':
+            ret = not any(runpredicate(pred, value) == '⊤' for value in left)
+        if mode == '⊤':
+            ret = runpredicate(pred, left) == '⊤'
+        if mode == '⊥':
+            ret = runpredicate(pred, left) == '⊥'
+        assert ret
+        return ('⊤' if ret else '⊥')
+
     if OPERATOR.search(joined):
         line = line[1:]
 
         if line[0] in PREFIX:
-            assert len(line) == 2
             atom = PREFIX_ATOMS[line[0]]
             target = left if line[1] == 'L' else execute(tokens, int(line[1])-1)
             return atom(target)
 
         if line[1] in POSTFIX:
-            assert len(line) == 2
             atom = POSTFIX_ATOMS[line[1]]
             target = left if line[0] == 'L' else execute(tokens, int(line[0])-1)
             return atom(target)
 
         if line[1] in INFIX:
-            assert len(line) == 3
             larg, atom, rarg = line
-            larg = left if larg == 'L' else execute(tokens, int(larg)-1)
-            rarg = right if rarg == 'R' else execute(tokens, int(rarg)-1)
-            atom = INFIX_ATOMS[atom]
-            return atom(larg, rarg)
+            if atom == '∘':
+                larg = int(larg)-1
+                rarg = execute(tokens, int(rarg)-1)
+                return execute(tokens, larg, rarg)
+            else:
+                larg = left if larg == 'L' else execute(tokens, int(larg)-1)
+                rarg = right if rarg == 'R' else execute(tokens, int(rarg)-1)
+                atom = INFIX_ATOMS[atom]
+                return atom(larg, rarg)
 
         if line[0] + line[2] in SURROUND:
             atom = SURROUND_ATOMS[line[0] + line[2]]
@@ -220,8 +308,9 @@ def output(value, file = 1):
             if type(v) == frozenset:
                 v = set(v)
             print(v, end = ', ', file = file)
-        if value: print(list(value)[-1], '}', sep = '', file = file)
-        else: print('}', file = file)
+        if value:
+            out = list(value)[-1]
+        print(out, '}', sep = '', file = file)
     else:
         print(value, file = file)
 
@@ -249,7 +338,6 @@ def tokenizer(code, stdin):
     return final
 
 def tryeval(value, stdin=True):
-    if value == '∅': value = 'set()'
     try:
         return eval(value)
     except:
@@ -262,9 +350,18 @@ def tryeval(value, stdin=True):
 if __name__ == '__main__':
     program = sys.argv[1]
     flag = sys.argv[2] in ['--tokens', '-t'] if len(sys.argv) > 2 else False
+
     try:
         program = open(program, 'r', encoding='utf-8').read()
     except:
         pass
-    if flag: print(tokenizer(program, CONST_STDIN))
-    else: execute(tokenizer(program, CONST_STDIN))
+
+    if flag:
+        print(tokenizer(program, CONST_STDIN))
+    else:
+        try:
+            execute(tokenizer(program, CONST_STDIN))
+            if re.search(r'^>>> ', program, re.MULTILINE) and not re.search(r'^>> Output', program, re.MULTILINE):
+                print('⊤')
+        except AssertionError:
+            print('⊥')
