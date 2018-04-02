@@ -82,7 +82,7 @@ PREFIX_ATOMS = {
     '?':lambda a: ord(a),
     'Γ':lambda a: math.gamma(a),
     '∤':lambda a: [i for i in range(1, a+1) if a%i == 0],
-    '℘':lambda a: set(map(frozenset, itertools.powerset(a))),
+    '℘':lambda a: set(map(frozenset, powerset(a))),
     'ℑ':lambda a: complex(a).imag,
     'ℜ':lambda a: complex(a).real,
     '∁':lambda a: complex(a).conjugate,
@@ -233,6 +233,13 @@ def prime(n):
     for i in range(2, int(n)):
         if n%i == 0: return False
     return n > 1 and type(n) == int
+
+def powerset(s):
+    x = len(s)
+    result = []
+    for i in range(1 << x):
+        result.append([s[j] for j in range(x) if (i & (1 << j))])
+    return result
 
 def tokenise(regex, string):
     result = list(filter(None, regex.match(string).groups()))
