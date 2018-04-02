@@ -83,7 +83,7 @@ PREFIX_ATOMS = {
     '?':lambda a: ord(a),
     'Γ':lambda a: math.gamma(a),
     '∤':lambda a: [i for i in range(1, a+1) if a%i == 0],
-    '℘':lambda a: set(map(frozenset, itertools.powerset(a))),
+    '℘':lambda a: set(map(frozenset, powerset(a))),
     'ℑ':lambda a: complex(a).imag,
     'ℜ':lambda a: complex(a).real,
     '∁':lambda a: complex(a).conjugate,
