@@ -16,12 +16,12 @@ e = math.e
 
 PRED = '𝔹ℂℕℙℝ𝕌ℤ¬⊤⊥'
 INFIX = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘'
-PREFIX = "∑ ∏#√?'Γ∤℘ℑℜ∁≺≻"
+PREFIX = "∑∏#√?'Γ∤℘ℑℜ∁≺≻"
 POSTFIX = '!’#'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
 EXTENSION = ['Range']
 
-PREDICATE = re.compile(r'''^(>>> )([∀∃∄⊤⊥ ∑])((?:\d|[{}])+)$'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX))
+PREDICATE = re.compile(r'''^(>>> )([∀∃∄⊤⊥∑])((?:\d|[{}])+)$'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX))
 OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|((\|)|(⌈)|(⌊))(\d+|[LR])((?(6)\||(?(7)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
 STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
 NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]])|(1j|∅|φ|π|e|""|''|\[]|{}))$''')
@@ -324,6 +324,13 @@ def prime(n):
     for i in range(2, int(n)):
         if n%i == 0: return False
     return n > 1 and type(n) == int
+
+def powerset(s):
+    x = len(s)
+    result = []
+    for i in range(1 << x):
+        result.append([s[j] for j in range(x) if (i & (1 << j))])
+    return result
 
 def tokenise(regex, string):
     result = list(filter(None, regex.match(string).groups()))
