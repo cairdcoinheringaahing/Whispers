@@ -16,12 +16,12 @@ e = math.e
 
 PRED = '𝔹ℂℕℙℝ𝕌ℤ¬⊤⊥'
 INFIX = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘'
-PREFIX = "∑∏#√?'Γ∤℘ℑℜ∁≺≻"
+PREFIX = "∑ ∏#√?'Γ∤℘ℑℜ∁≺≻"
 POSTFIX = '!’#'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
 EXTENSION = ['Range']
 
-PREDICATE = re.compile(r'''^(>>> )([∀∃∄⊤⊥])((?:\d|[{}])+)$'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX))
+PREDICATE = re.compile(r'''^(>>> )([∀∃∄⊤⊥ ∑])((?:\d|[{}])+)$'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX))
 OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|((\|)|(⌈)|(⌊))(\d+|[LR])((?(6)\||(?(7)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
 STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
 NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]])|(1j|∅|φ|π|e|""|''|\[]|{}))$''')
@@ -186,7 +186,10 @@ def execute(tokens, index=-1, left=None, right=None):
     if PREDICATE.search(joined):
         line = line[1:]
 
-        mode, pred = line
+        mode, pred = line 
+        if mode == '∑':
+            ret = sum(runpredicate(pred, value) == '⊤' for value in left)
+
         if mode == '∀':
             ret = all(runpredicate(pred, value) == '⊤' for value in left)
         if mode == '∃':
@@ -197,8 +200,11 @@ def execute(tokens, index=-1, left=None, right=None):
             ret = runpredicate(pred, left) == '⊤'
         if mode == '⊥':
             ret = runpredicate(pred, left) == '⊥'
-        assert ret
-        return ('⊤' if ret else '⊥')
+        
+        if mode not in '∑':
+            assert ret
+            return ('⊤' if ret else '⊥')
+        return ret
 
     if OPERATOR.search(joined):
         line = line[1:]
