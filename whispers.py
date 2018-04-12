@@ -21,8 +21,8 @@ POSTFIX = '!’#'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
 EXTENSION = ['Range']
 
-PREDICATE = re.compile(r'''^(>>> )([∀∃∄⊤⊥∑])((?:\d|[{}])+)$'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX))
-OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|((\|)|(⌈)|(⌊))(\d+|[LR])((?(6)\||(?(7)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
+PREDICATE = re.compile(r'''^(>>> )([∀∃∄⊤⊥∑#])((?:\d|[{}])+)$'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX))
+OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|(?:(\|)|(⌈)|(⌊))(\d+|[LR])((?(5)\||(?(6)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
 STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
 NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]])|(1j|∅|φ|π|e|""|''|\[]|{}))$''')
 LOOP = re.compile(r'''^(>> )(While|For|If|Each|DoWhile|Then)((?: \d+|[LR])+)$''')
@@ -70,6 +70,8 @@ INFIX_ATOMS = {
     '∤':lambda a, b: bool(a % b),
     '⊓':lambda a, b: math.gcd(a, b),
     '⊔':lambda a, b: a*b//math.gcd(a, b),
+    '⊥':lambda a, b: tobase(a, b),
+    '⊤':lambda a, b: frombase(a, b),
 
 }
 
@@ -189,6 +191,8 @@ def execute(tokens, index=-1, left=None, right=None):
         mode, pred = line 
         if mode == '∑':
             ret = sum(runpredicate(pred, value) == '⊤' for value in left)
+        if mode == '#':
+            ret = list(filter(lambda v: runpredicate(pred, v) == '⊤', left))
 
         if mode == '∀':
             ret = all(runpredicate(pred, value) == '⊤' for value in left)
@@ -201,9 +205,10 @@ def execute(tokens, index=-1, left=None, right=None):
         if mode == '⊥':
             ret = runpredicate(pred, left) == '⊥'
         
-        if mode not in '∑':
+        if mode not in '∑#':
             assert ret
             return ('⊤' if ret else '⊥')
+
         return ret
 
     if OPERATOR.search(joined):
@@ -331,6 +336,19 @@ def powerset(s):
     for i in range(1 << x):
         result.append([s[j] for j in range(x) if (i & (1 << j))])
     return result
+
+def tobase(value, base):
+    digits = []
+    while value:
+        digits.append(value % base)
+        value //= base
+    return digits[::-1]
+
+def frombase(digits, base):
+    total = 0
+    for index, digit in enumerate(digits[::-1]):
+        total += digit * base ** index
+    return total
 
 def tokenise(regex, string):
     result = list(filter(None, regex.match(string).groups()))
