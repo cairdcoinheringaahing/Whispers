@@ -15,26 +15,18 @@ U = chr(120140)
 e = math.e
 
 PRED = '𝔹ℂℕℙℝ𝕌ℤ¬⊤⊥'
-INFIX = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥'
+INFIX = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…'
 PREFIX = "∑∏#√?'Γ∤℘ℑℜ∁≺≻"
 POSTFIX = '!’#'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
-EXTENSION = ['Range']
 
 PREDICATE = re.compile(r'''^(>>> )([∀∃∄⊤⊥∑#])((?:\d|[{}])+)$'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX))
 OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|(?:(\|)|(⌈)|(⌊))(\d+|[LR])((?(5)\||(?(6)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
 STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
 NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]])|(1j|∅|φ|π|e|""|''|\[]|{}))$''')
 LOOP = re.compile(r'''^(>> )(While|For|If|Each|DoWhile|Then)((?: \d+|[LR])+)$''')
-EXT = re.compile(r'''^(>> )(E:(?:{}))((?: \d+|[LR])+)$'''.format('|'.join(EXTENSION)))
 REGEXES = [PREDICATE, OPERATOR, STREAM, NILAD, LOOP, EXT]
 CONST_STDIN = sys.stdin.read()
-
-EXTENSION_ATOMS = {
-
-    'E:Range':lambda a: list(range(1, a+1)),
-
-}
 
 INFIX_ATOMS = {
 
@@ -72,6 +64,7 @@ INFIX_ATOMS = {
     '⊔':lambda a, b: a*b//math.gcd(a, b),
     '⊥':lambda a, b: tobase(a, b),
     '⊤':lambda a, b: frombase(a, b),
+    '…':lambda a, b: set(range(a, b+1)),
 
 }
 
@@ -299,11 +292,6 @@ def execute(tokens, index=-1, left=None, right=None):
         if loop == 'Then':
             for ln in targets:
                 execute(tokens, ln)
-
-    if EXT.search(joined):
-        target = list(map(lambda a: int(a)-1, line[2].split()))[0]
-        atom = EXTENSION_ATOMS[line[1]]
-        return atom(execute(tokens, target))
 
 def output(value, file = 1):
     if file < 0:
