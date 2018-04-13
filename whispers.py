@@ -25,7 +25,7 @@ OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|(?:(\|)|(⌈)|(⌊
 STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
 NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]])|(1j|∅|φ|π|e|""|''|\[]|{}))$''')
 LOOP = re.compile(r'''^(>> )(While|For|If|Each|DoWhile|Then)((?: \d+|[LR])+)$''')
-REGEXES = [PREDICATE, OPERATOR, STREAM, NILAD, LOOP, EXT]
+REGEXES = [PREDICATE, OPERATOR, STREAM, NILAD, LOOP]
 CONST_STDIN = sys.stdin.read()
 
 INFIX_ATOMS = {
