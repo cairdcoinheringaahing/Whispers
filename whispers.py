@@ -17,7 +17,7 @@ e = math.e
 PRED = '𝔹ℂℕℙℝ𝕌ℤ¬⊤⊥'
 INFIX = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…'
 PREFIX = "∑∏#√?'Γ∤℘ℑℜ∁≺≻"
-POSTFIX = '!’#'
+POSTFIX = '!’#²³'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
 
 PREDICATE = re.compile(r'''^(>>> )([∀∃∄⊤⊥∑#])((?:\d|[{}])+)$'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX))
@@ -92,6 +92,8 @@ POSTFIX_ATOMS = {
     '!':lambda a: math.factorial(a),
     '’':lambda a: prime(a),
     '#':lambda a: functools.reduce(operator.mul, [i for i in range(1, a+1) if prime(i)]),
+    '²':lambda a: a ** 2,
+    '³':lambda a: a ** 3,
 
 }
 
