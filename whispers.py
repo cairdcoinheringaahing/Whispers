@@ -20,7 +20,7 @@ PREFIX = "∑∏#√?'Γ∤℘ℑℜ∁≺≻"
 POSTFIX = '!’#²³'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
 
-PREDICATE = re.compile(r'''^(>>> )([∀∃∄⊤⊥∑#])((?:\d|[{}])+)$'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX))
+PREDICATE = re.compile(r'''^(>>> )([∀∃∄⊤⊥∑#≻])((?:\d|[{}])+)$'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX))
 OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|(?:(\|)|(⌈)|(⌊))(\d+|[LR])((?(5)\||(?(6)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
 STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
 NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?\d+\.\d+|-?\d+)|([[{]((-?\d+(\.\d+)?, ?)*-?\d+(\.\d+)?)*[}\]])|(1j|∅|φ|π|e|""|''|\[]|{}))$''')
