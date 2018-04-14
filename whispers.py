@@ -184,10 +184,20 @@ def execute(tokens, index=-1, left=None, right=None):
         line = line[1:]
 
         mode, pred = line 
+        if mode == '≻':
+            if isinstance(left, (set, list)):
+                for value in left:
+                    if runpredicate(pred, value) == '⊤':
+                        return value
+            else:
+                while runpredicate(pred, left) == '⊥':
+                    left += 1
+                return left
+            
         if mode == '∑':
-            ret = sum(runpredicate(pred, value) == '⊤' for value in left)
+            return sum(runpredicate(pred, value) == '⊤' for value in left)
         if mode == '#':
-            ret = list(filter(lambda v: runpredicate(pred, v) == '⊤', left))
+            return list(filter(lambda v: runpredicate(pred, v) == '⊤', left))
 
         if mode == '∀':
             ret = all(runpredicate(pred, value) == '⊤' for value in left)
@@ -200,11 +210,8 @@ def execute(tokens, index=-1, left=None, right=None):
         if mode == '⊥':
             ret = runpredicate(pred, left) == '⊥'
         
-        if mode not in '∑#':
-            assert ret
-            return ('⊤' if ret else '⊥')
-
-        return ret
+        assert ret
+        return ('⊤' if ret else '⊥')
 
     if OPERATOR.search(joined):
         line = line[1:]
