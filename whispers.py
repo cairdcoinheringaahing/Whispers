@@ -15,7 +15,7 @@ U = chr(120140)
 e = math.e
 
 PRED = '𝔹ℂℕℙℝ𝕌ℤ¬⊤⊥'
-INFIX = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…'
+INFIX = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟'
 PREFIX = "∑∏#√?'Γ∤℘ℑℜ∁≺≻"
 POSTFIX = '!’#²³'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
@@ -65,6 +65,7 @@ INFIX_ATOMS = {
     '⊥':lambda a, b: tobase(a, b),
     '⊤':lambda a, b: frombase(a, b),
     '…':lambda a, b: set(range(a, b+1)),
+    '⍟':lambda a, b: math.log(a, b),
 
 }
 
