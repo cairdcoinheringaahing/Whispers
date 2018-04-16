@@ -21,10 +21,10 @@ POSTFIX = '!’#²³'
 SURROUND = ['||', '⌈⌉', '⌊⌋']
 
 PREDICATE = re.compile(r'''^(>>> )([∀∃∄⊤⊥∑#≻])((?:\d|[{}])+)$'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX))
-OPERATOR = re.compile(r'''^(>> )(?:(\d+|[LR])([{}])(\d+|[LR])|(?:(\|)|(⌈)|(⌊))(\d+|[LR])((?(5)\||(?(6)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
+OPERATOR = re.compile(r'''^(>> )(?:(id)|(\d+|[LR])([{}])(\d+|[LR])|(?:(\|)|(⌈)|(⌊))(\d+|[LR])((?(5)\||(?(6)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
 STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
 NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?[1-9]\d*\.\d+|-?[1-9]\d*)|([[{]((-?[1-9]\d*(\.\d+)?, ?)*-?[1-9]\d*(\.\d+)?)*[}\]])|(1j|∅|φ|π|e|""|''|\[]|{}))$''')
-LOOP = re.compile(r'''^(>> )(While|For|If|Each|DoWhile|Then)((?: \d+|[LR])+)$''')
+LOOP = re.compile(r'''^(>> )(While|For|If|Each|DoWhile|Then|[∑∏…])((?: \d+|[LR])+)$''')
 REGEXES = [PREDICATE, OPERATOR, STREAM, NILAD, LOOP]
 CONST_STDIN = sys.stdin.read()
 
@@ -217,6 +217,9 @@ def execute(tokens, index=-1, left=None, right=None):
     if OPERATOR.search(joined):
         line = line[1:]
 
+        if line[0] == 'id':
+            return left
+
         if line[0] in PREFIX:
             atom = PREFIX_ATOMS[line[0]]
             target = left if line[1] == 'L' else execute(tokens, int(line[1])-1)
@@ -298,6 +301,27 @@ def execute(tokens, index=-1, left=None, right=None):
             if len(final) == 1:
                 return final[0]
             return final
+
+        if loop in '∑∏…':
+           start, end, *f = targets
+           start = execute(tokens, start)
+           end = execute(tokens, end) + 1
+           total = 0
+           if loop == '…':
+               total = []
+           if loop == '∏':
+               total = 1
+           for n in range(start, end):
+               sub = 0
+               for fn in f:
+                   sub += execute(tokens, fn, left = n, right = sub)
+               if loop == '∑':
+                   total += sub
+               if loop == '∏':
+                   total *= sub
+               if loop == '…':
+                   total.append(sub)
+           return total
         
         if loop == 'Then':
             for ln in targets:
