@@ -14,17 +14,160 @@ U = chr(120140)
 π = math.pi
 e = math.e
 
-PRED = '𝔹ℂℕℙℝ𝕌ℤ¬⊤⊥'
-INFIX = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟'
-PREFIX = "∑∏#√?'Γ∤℘ℑℜ∁≺≻"
+PRED    = B + 'ℂℕℙℝ' + U + 'ℤ¬⊤⊥'
+INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟'
+PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻"
 POSTFIX = '!’#²³'
-SURROUND = ['||', '⌈⌉', '⌊⌋']
+OPEN    = '|(\[⌈⌊{'
+CLOSE   = '|)\]⌉⌋}'
 
-PREDICATE = re.compile(r'''^(>>> )([∀∃∄⊤⊥∑#≻])((?:\d|[{}])+)$'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX))
-OPERATOR = re.compile(r'''^(>> )(?:(id)|(\d+|[LR])([{}])(\d+|[LR])|(?:(\|)|(⌈)|(⌊))(\d+|[LR])((?(5)\||(?(6)⌉|⌋)))|([{}])(\d+|[LR])|(\d+|[LR])([{}]))$'''.format(INFIX, PREFIX, POSTFIX))
-STREAM = re.compile(r'''^(>>? )(?:(Output )((?:\d+|[LR]) )*(\d+|[LR])|(Input(?:All)?)|(Error ?)(\d+|[LR])?)$''')
-NILAD = re.compile(r'''^(> )((((")|('))(?(5)[^"]|[^'])*(?(5)"|'))|(-?[1-9]\d*\.\d+|-?[1-9]\d*)|([[{]((-?[1-9]\d*(\.\d+)?, ?)*-?[1-9]\d*(\.\d+)?)*[}\]])|(1j|∅|φ|π|e|""|''|\[]|{}))$''')
-LOOP = re.compile(r'''^(>> )(While|For|If|Each|DoWhile|Then|[∑∏…])((?: \d+|[LR])+)$''')
+PREDICATE = re.compile(r'''
+
+	^
+	(>>>\ )
+	([∀∃∄⊤⊥∑#≻])
+	(
+		(?:\d|[{}])+
+	)$
+
+	'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX), re.VERBOSE)
+
+OPERATOR = re.compile(r'''
+
+	^
+	(>>\ )
+	(?:
+		(id)
+	|
+		([1-9]\d*|[LR])([{}])([1-9]\d*|[LR])
+	|
+		([{}])([1-9]\d*|[LR])([{}])
+	|
+		([{}])([1-9]\d*|[LR])
+	|
+		([1-9]\d*|[LR])([{}])
+	)
+	(?:
+		\s*
+		;
+		.*
+	)?
+	$
+
+	'''.format(INFIX, OPEN, CLOSE, PREFIX, POSTFIX), re.VERBOSE)
+
+STREAM = re.compile(r'''
+
+	^(>>?\ )
+	(?:
+		(Output\ )
+		(
+			(?:\d+|[LR])
+		\ )*
+		(\d+|[LR])
+	|
+		(Input
+			(?:All)?
+		)
+	|
+		(Error\ ?)
+		(\d+|[LR])?
+	)$
+
+	''', re.VERBOSE)
+
+NILAD = re.compile(r'''
+
+	^(>\ )
+	(
+		(
+			(
+				(")
+			|
+				(')
+			)
+			(?(5)
+					[^"]
+				|
+					[^']
+			)*
+			(?(5)
+					"
+				|
+					'
+			)
+		)
+	|
+		(
+			-?[1-9]\d*\.\d+
+		|
+			-?[1-9]\d*
+		)
+	|
+		(
+			[\[{]
+			(
+				(
+					-?[1-9]\d*
+						(\.\d+)?
+					,\ ?
+				)*
+				-?[1-9]\d*
+					(\.\d+)?
+			)*
+			[}\]]
+		)
+	|
+		(
+			1j
+		|
+			∅
+		|
+			φ
+		|
+			π
+		|
+			e
+		|
+			\[]
+		|
+			{}
+		)
+	)
+	$
+
+	''', re.VERBOSE)
+
+LOOP = re.compile(r'''
+
+	^
+	(>>\ )
+	(
+		While
+	|
+		For
+	|
+		If
+	|
+		Each
+	|
+		DoWhile
+	|
+		Then
+	|
+		[
+			∑
+			∏
+			…
+		]
+	)
+	(
+		(?:\ \d+|[LR])+
+	)
+	$
+
+	''', re.VERBOSE)
+
 REGEXES = [PREDICATE, OPERATOR, STREAM, NILAD, LOOP]
 CONST_STDIN = sys.stdin.read()
 
@@ -103,17 +246,23 @@ SURROUND_ATOMS = {
     '||':lambda a: abs(a),
     '⌈⌉':lambda a: math.ceil(a),
     '⌊⌋':lambda a: math.floor(a),
+    '⌈⌋':lambda a: int(a),
+    '[]':lambda a: set(range(a+1)) if type(a) == int else list(a),
+    '[)':lambda a: set(range(a)),
+    '(]':lambda a: set(range(1, a+1)),
+    '()':lambda a: set(range(1, a)),
+    '{}':lambda a: set(a),
 
 }
 
 PREDICATE_ATOMS = {
 
-    '𝔹':lambda a: a in [True, False],
+     B :lambda a: a in [True, False],
     'ℂ':lambda a: type(a) == complex,
     'ℕ':lambda a: type(a) == int and a > 0,
     'ℙ':lambda a: prime(a),
     'ℝ':lambda a: type(a) in [int, float],
-    '𝕌':lambda a: type(a) in [int, float, complex] or a in [True, False],
+     U :lambda a: type(a) in [int, float, complex] or a in [True, False],
     'ℤ':lambda a: type(a) == int,
     '¬':lambda a: not a,
     '⊤':lambda a: True,
@@ -242,8 +391,12 @@ def execute(tokens, index=-1, left=None, right=None):
                 atom = INFIX_ATOMS[atom]
                 return atom(larg, rarg)
 
-        if line[0] + line[2] in SURROUND:
-            atom = SURROUND_ATOMS[line[0] + line[2]]
+        if line[0] in OPEN and line[2] in CLOSE:
+            try:
+                atom = SURROUND_ATOMS[line[0] + line[2]]
+            except:
+                atom = lambda a: a
+
             target = int(line[1])-1
             return atom(execute(tokens, target))
 
@@ -306,26 +459,31 @@ def execute(tokens, index=-1, left=None, right=None):
            start, end, *f = targets
            start = execute(tokens, start)
            end = execute(tokens, end) + 1
-           total = 0
+
+           if loop == '∑':
+               total = 0
            if loop == '…':
                total = []
            if loop == '∏':
                total = 1
+
            for n in range(start, end):
                sub = 0
                for fn in f:
                    sub += execute(tokens, fn, left = n, right = sub)
+
                if loop == '∑':
                    total += sub
                if loop == '∏':
                    total *= sub
                if loop == '…':
                    total.append(sub)
+
            return total
         
         if loop == 'Then':
             for ln in targets:
-                execute(tokens, ln)
+                yield execute(tokens, ln)
 
 def output(value, file = 1):
     if file < 0:
