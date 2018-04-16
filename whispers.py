@@ -404,7 +404,10 @@ def execute(tokens, index=-1, left=None, right=None):
         if line[1] == 'Output ':
             targets = line[2:]
             for target in targets:
-                output(execute(tokens, int(target)-1))
+                string = execute(tokens, int(target)-1)
+                output(string)
+            return string
+
         if line[1].strip() == 'Error':
             output(execute(tokens, int(line[2])-1), -1)
             sys.exit()
@@ -415,27 +418,31 @@ def execute(tokens, index=-1, left=None, right=None):
 
         if loop == 'While':
             cond, call, *_ = targets
+            last = 0
             while execute(tokens, cond):
-                execute(tokens, call)
+                last = execute(tokens, call)
+            return last
                 
         if loop == 'DoWhile':
             cond, call, *_ = targets
-            execute(tokens, call)
+            last = execute(tokens, call)
             while execute(tokens, cond):
-                execute(tokens, call)
+                last = execute(tokens, call)
+            return last
 
         if loop == 'For':
             iters, call, *_ = targets
-            for _ in range(execute(tokens, iters)):
-                execute(tokens, call)
+            for last in range(execute(tokens, iters)):
+                last = execute(tokens, call)
+            return last
             
         if loop == 'If':
             cond, true, *false = targets
             false = false[:1]
             if execute(tokens, cond):
-                execute(tokens, true)
+                return execute(tokens, true)
             else:
-                if false: execute(tokens, false[0])
+                if false: return execute(tokens, false[0])
                 else: return 0
 
         if loop == 'Each':
@@ -482,8 +489,10 @@ def execute(tokens, index=-1, left=None, right=None):
            return total
         
         if loop == 'Then':
+            ret = []
             for ln in targets:
-                yield execute(tokens, ln)
+                ret.append(execute(tokens, ln))
+            return ret
 
 def output(value, file = 1):
     if file < 0:
