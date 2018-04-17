@@ -503,6 +503,10 @@ def output(value, file = 1):
             print(v, end = ', ', file = file)
         if value:
             out = list(value)[-1]
+	else:
+            out = ''
+	if type(out) == frozenset:
+            out = set(out)
         print(out, '}', sep = '', file = file)
     else:
         print(value, file = file)
