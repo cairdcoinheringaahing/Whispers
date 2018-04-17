@@ -454,7 +454,7 @@ def execute(tokens, index=-1, left=None, right=None):
                 result.append(res if hasattr(res, '__iter__') else [res])
             result = list(map(list, zip(*result)))
             for args in result:
-                while len(args) != 2: args.append(None)
+                while len(args) != 2: args.append(args[-1])
                 argd = {'index':call, 'left':args[0], 'right':args[1]}
                 final.append(execute(tokens, **argd))
             if all(type(a) == str for a in final):
