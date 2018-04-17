@@ -209,8 +209,8 @@ INFIX_ATOMS = {
     '⊤':lambda a, b: frombase(a, b),
     '…':lambda a, b: set(range(a, b+1)),
     '⍟':lambda a, b: math.log(a, b),
-	'ᵢ':lambda a, b: list(a).index(b),
-	'ₙ':lambda a, b: a[b],
+    'ᵢ':lambda a, b: list(a).index(b),
+    'ₙ':lambda a, b: a[b],
 
 }
 
@@ -406,10 +406,7 @@ def execute(tokens, index=-1, left=None, right=None):
         if line[1] == 'Output ':
             targets = line[2:]
             for target in targets:
-                string = execute(tokens, int(target)-1)
-                output(string)
-            return string
-
+                output(execute(tokens, int(target)-1))
         if line[1].strip() == 'Error':
             output(execute(tokens, int(line[2])-1), -1)
             sys.exit()
@@ -420,31 +417,27 @@ def execute(tokens, index=-1, left=None, right=None):
 
         if loop == 'While':
             cond, call, *_ = targets
-            last = 0
             while execute(tokens, cond):
-                last = execute(tokens, call)
-            return last
+                execute(tokens, call)
                 
         if loop == 'DoWhile':
             cond, call, *_ = targets
-            last = execute(tokens, call)
+            execute(tokens, call)
             while execute(tokens, cond):
-                last = execute(tokens, call)
-            return last
+                execute(tokens, call)
 
         if loop == 'For':
             iters, call, *_ = targets
-            for last in range(execute(tokens, iters)):
-                last = execute(tokens, call)
-            return last
+            for _ in range(execute(tokens, iters)):
+                execute(tokens, call)
             
         if loop == 'If':
             cond, true, *false = targets
             false = false[:1]
             if execute(tokens, cond):
-                return execute(tokens, true)
+                execute(tokens, true)
             else:
-                if false: return execute(tokens, false[0])
+                if false: execute(tokens, false[0])
                 else: return 0
 
         if loop == 'Each':
@@ -455,7 +448,7 @@ def execute(tokens, index=-1, left=None, right=None):
                 result.append(res if hasattr(res, '__iter__') else [res])
             result = list(map(list, zip(*result)))
             for args in result:
-                while len(args) != 2: args.append(args[-1])
+                while len(args) != 2: args.append(None)
                 argd = {'index':call, 'left':args[0], 'right':args[1]}
                 final.append(execute(tokens, **argd))
             if all(type(a) == str for a in final):
@@ -491,10 +484,8 @@ def execute(tokens, index=-1, left=None, right=None):
            return total
         
         if loop == 'Then':
-            ret = []
             for ln in targets:
-                ret.append(execute(tokens, ln))
-            return ret
+                yield execute(tokens, ln)
 
 def output(value, file = 1):
     if file < 0:
