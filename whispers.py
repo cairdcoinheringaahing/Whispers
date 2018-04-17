@@ -22,18 +22,15 @@ OPEN    = '|(\[⌈⌊{'
 CLOSE   = '|)\]⌉⌋}'
 
 PREDICATE = re.compile(r'''
-
 	^
 	(>>>\ )
 	([∀∃∄⊤⊥∑#≻])
 	(
 		(?:\d|[{}])+
 	)$
-
 	'''.format(PRED + '∘∧∨⊕' + INFIX + PREFIX + POSTFIX), re.VERBOSE)
 
 OPERATOR = re.compile(r'''
-
 	^
 	(>>\ )
 	(?:
@@ -53,11 +50,9 @@ OPERATOR = re.compile(r'''
 		.*
 	)?
 	$
-
 	'''.format(INFIX, OPEN, CLOSE, PREFIX, POSTFIX), re.VERBOSE)
 
 STREAM = re.compile(r'''
-
 	^(>>?\ )
 	(?:
 		(Output\ )
@@ -73,11 +68,9 @@ STREAM = re.compile(r'''
 		(Error\ ?)
 		(\d+|[LR])?
 	)$
-
 	''', re.VERBOSE)
 
 NILAD = re.compile(r'''
-
 	^(>\ )
 	(
 		(
@@ -135,11 +128,9 @@ NILAD = re.compile(r'''
 		)
 	)
 	$
-
 	''', re.VERBOSE)
 
 LOOP = re.compile(r'''
-
 	^
 	(>>\ )
 	(
@@ -165,7 +156,6 @@ LOOP = re.compile(r'''
 		(?:\ \d+|[LR])+
 	)
 	$
-
 	''', re.VERBOSE)
 
 REGEXES = [PREDICATE, OPERATOR, STREAM, NILAD, LOOP]
@@ -503,9 +493,9 @@ def output(value, file = 1):
             print(v, end = ', ', file = file)
         if value:
             out = list(value)[-1]
-	else:
+        else:
             out = ''
-	if type(out) == frozenset:
+        if type(out) == frozenset:
             out = set(out)
         print(out, '}', sep = '', file = file)
     else:
