@@ -210,6 +210,7 @@ INFIX_ATOMS = {
     '…':lambda a, b: set(range(a, b+1)),
     '⍟':lambda a, b: math.log(a, b),
 	'ᵢ':lambda a, b: list(a).index(b),
+	'ₙ':lambda a, b: a[b],
 
 }
 
