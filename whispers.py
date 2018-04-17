@@ -15,9 +15,9 @@ U = chr(120140)
 e = math.e
 
 PRED    = B + 'ℂℕℙℝ' + U + 'ℤ¬⊤⊥'
-INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ᵢₙ'
-PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻"
-POSTFIX = '!’#²³'
+INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖'
+PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪"
+POSTFIX = '!’#²³ᵀᴺ'
 OPEN    = '|(\[⌈⌊{'
 CLOSE   = '|)\]⌉⌋}'
 
@@ -56,9 +56,9 @@ STREAM = re.compile(r'''
 	^(>>?\ )
 	(?:
 		(Output\ )
-		(
+		((?:
 			(?:\d+|[LR])
-		\ )*
+		\ )*)
 		(\d+|[LR])
 	|
 		(Input
@@ -153,7 +153,7 @@ LOOP = re.compile(r'''
 		]
 	)
 	(
-		(?:\ \d+|[LR])+
+		(?:\ \d+|\ [LR])+
 	)
 	$
 	''', re.VERBOSE)
@@ -199,8 +199,9 @@ INFIX_ATOMS = {
     '⊤':lambda a, b: frombase(a, b),
     '…':lambda a, b: set(range(a, b+1)),
     '⍟':lambda a, b: math.log(a, b),
-    'ᵢ':lambda a, b: list(a).index(b),
-    'ₙ':lambda a, b: a[b],
+    'ⁱ':lambda a, b: list(a).index(b),
+    'ⁿ':lambda a, b: a[b],
+    '‖':lambda a, b: [a, b],
 
 }
 
@@ -220,6 +221,7 @@ PREFIX_ATOMS = {
     '∁':lambda a: complex(a).conjugate,
     '≺':lambda a: a - 1,
     '≻':lambda a: a + 1,
+    '∪':lambda a: deduplicate(a),
 
 }
 
@@ -230,6 +232,8 @@ POSTFIX_ATOMS = {
     '#':lambda a: functools.reduce(operator.mul, [i for i in range(1, a+1) if prime(i)]),
     '²':lambda a: a ** 2,
     '³':lambda a: a ** 3,
+    'ᵀ':lambda a: transpose(a),
+    'ᴺ':lambda a: sorted(a),
 
 }
 
@@ -311,10 +315,20 @@ def runpredicate(code, value):
         
     return '⊤' if final else '⊥'
 
-def execute(tokens, index=-1, left=None, right=None):
+def execute(tokens, index = 0, left = None, right = None):
+
+    def getvalue(value):
+        if value == 'L':
+            return left
+        if value == 'R':
+            return right
+        
+        return execute(tokens, int(value))
+        
     if not tokens:
         return
-    line = tokens[index]
+    
+    line = tokens[index - 1]
     mode = line[0].count('>')
 
     if mode == 1:
@@ -328,7 +342,7 @@ def execute(tokens, index=-1, left=None, right=None):
         mode, pred = line 
         if mode == '≻':
             if isinstance(left, (set, list)):
-                for value in left:
+                for value in list(left):
                     if runpredicate(pred, value) == '⊤':
                         return value
             else:
@@ -363,23 +377,23 @@ def execute(tokens, index=-1, left=None, right=None):
 
         if line[0] in PREFIX:
             atom = PREFIX_ATOMS[line[0]]
-            target = left if line[1] == 'L' else execute(tokens, int(line[1])-1)
+            target = getvalue(line[1])
             return atom(target)
 
         if line[1] in POSTFIX:
             atom = POSTFIX_ATOMS[line[1]]
-            target = left if line[0] == 'L' else execute(tokens, int(line[0])-1)
+            target = getvalue(line[0])
             return atom(target)
 
         if line[1] in INFIX:
             larg, atom, rarg = line
             if atom == '∘':
-                larg = int(larg)-1
-                rarg = execute(tokens, int(rarg)-1)
+                larg = getvalue(larg)
+                rarg = getvalue(rarg)
                 return execute(tokens, larg, rarg)
             else:
-                larg = left if larg == 'L' else execute(tokens, int(larg)-1)
-                rarg = right if rarg == 'R' else execute(tokens, int(rarg)-1)
+                larg = getvalue(larg)
+                rarg = getvalue(rarg)
                 atom = INFIX_ATOMS[atom]
                 return atom(larg, rarg)
 
@@ -389,66 +403,68 @@ def execute(tokens, index=-1, left=None, right=None):
             except:
                 atom = lambda a: a
 
-            target = int(line[1])-1
-            return atom(execute(tokens, target))
+            target = getvalue(line[1])
+            return atom(target)
 
     if STREAM.search(joined):
         if line[1] == 'Output ':
-            targets = line[2:]
+            targets = ''.join(line[2:]).split()
             for target in targets:
-                 string = execute(tokens, int(target)-1)
+                 string = getvalue(target)
                  output(string)
             return string
 
         if line[1].strip() == 'Error':
-            output(execute(tokens, int(line[2])-1), -1)
+            output(execute(tokens, int(line[2])), -1)
             sys.exit()
 
     if LOOP.search(joined):
         loop = line[1]
-        targets = list(map(lambda a: int(a)-1, line[2].split()))
+        targets = line[2].split()
 
         if loop == 'While':
             cond, call, *_ = targets
             last = 0
-            while execute(tokens, cond):
-                last = execute(tokens, call)
+            while execute(tokens, int(cond)):
+                last = getvalue(call)
             return last
                 
         if loop == 'DoWhile':
             cond, call, *_ = targets
-            last = execute(tokens, call)
-            while execute(tokens, cond):
-                last = execute(tokens, call)
+            last = getvalue(call)
+            while execute(tokens, int(cond)):
+                last = getvalue(call)
             return last
 
         if loop == 'For':
             iters, call, *_ = targets
-            for last in range(execute(tokens, iters)):
-                last = execute(tokens, call)
+            for last in range(getvalue(iters)):
+                last = getvalue(call)
             return last
             
         if loop == 'If':
             cond, true, *false = targets
             false = false[:1]
-            if execute(tokens, cond):
-                return execute(tokens, true)
+            if getvalue(cond):
+                return getvalue(true)
             else:
-                if false: return execute(tokens, false[0])
+                if false: return getvalue(false[0])
                 else: return 0
 
         if loop == 'Each':
             call, *iters = targets
             result, final = [], []
             for tgt in iters:
-                res = execute(tokens, tgt)
+                res = getvalue(tgt)
                 result.append(res if hasattr(res, '__iter__') else [res])
-            result = list(map(list, zip(*result)))
+                
+            result = transpose(result)
 
             for args in result:
-                while len(args) != 2: args.append(args[-1])
-                argd = {'index':call, 'left':args[0], 'right':args[1]}
-                final.append(execute(tokens, **argd))
+                while len(args) != 2:
+                    args.append(args[-1])
+                    
+                final.append(execute(tokens, index = int(call), left = args[0], right = args[1]))
 
             if all(type(a) == str for a in final):
                 return ''.join(final)
@@ -460,8 +476,8 @@ def execute(tokens, index=-1, left=None, right=None):
 
         if loop in '∑∏…':
            start, end, *f = targets
-           start = execute(tokens, start)
-           end = execute(tokens, end) + 1
+           start = getvalue(start)
+           end = getvalue(end) + 1
 
            if loop == '∑':
                total = 0
@@ -487,8 +503,21 @@ def execute(tokens, index=-1, left=None, right=None):
         if loop == 'Then':
             ret = []
             for ln in targets:
-                ret.append(execute(tokens, ln))
+                ret.append(execute(tokens, int(ln)))
             return ret
+
+def deduplicate(array):
+    final = []
+    for value in array:
+        if value not in final:
+            final.append(value)
+    return final
+
+def frombase(digits, base):
+    total = 0
+    for index, digit in enumerate(digits[::-1]):
+        total += digit * base ** index
+    return total
 
 def output(value, file = 1):
     if file < 0:
@@ -533,12 +562,6 @@ def tobase(value, base):
         value //= base
     return digits[::-1]
 
-def frombase(digits, base):
-    total = 0
-    for index, digit in enumerate(digits[::-1]):
-        total += digit * base ** index
-    return total
-
 def tokenise(regex, string):
     result = list(filter(None, regex.match(string).groups()))
     if result[0] == '> ':
@@ -556,6 +579,9 @@ def tokenizer(code, stdin):
             if regex.search(line):
                 final.append(tokenise(regex, line))
     return final
+
+def transpose(array):
+    return list(map(list, zip(*array)))
 
 def tryeval(value, stdin=True):
     try:
