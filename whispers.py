@@ -201,7 +201,7 @@ INFIX_ATOMS = {
     '⍟':lambda a, b: math.log(a, b),
     'ⁱ':lambda a, b: list(a).index(b),
     'ⁿ':lambda a, b: a[b],
-    '‖':lambda a, b: [a, b],
+    '‖':lambda a, b: (list(a) if isinstance(a, (list, set)) else [a]) + (list(b) if isinstance(b, (list, set)) else [b]),
 
 }
 
