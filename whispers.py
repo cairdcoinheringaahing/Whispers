@@ -18,8 +18,8 @@ PRED    = B + 'ℂℕℙℝ' + U + 'ℤ¬⊤⊥'
 INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖'
 PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪"
 POSTFIX = '!’#²³ᵀᴺ'
-OPEN    = '|(\[⌈⌊{'
-CLOSE   = '|)\]⌉⌋}'
+OPEN    = '|(\[⌈⌊{"'
+CLOSE   = '|)\]⌉⌋}"'
 
 PREDICATE = re.compile(r'''
 	^
@@ -250,6 +250,7 @@ SURROUND_ATOMS = {
     '(]':lambda a: set(range(1, a+1)),
     '()':lambda a: set(range(1, a)),
     '{}':lambda a: set(a),
+    '""':lambda a: str(a),
 
 }
 
