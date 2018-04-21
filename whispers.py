@@ -202,7 +202,7 @@ INFIX_ATOMS = {
     '…':lambda a, b: set(range(a, b+1)),
     '⍟':lambda a, b: math.log(a, b),
     'ⁱ':lambda a, b: list(a).index(b),
-    'ⁿ':lambda a, b: a[b],
+    'ⁿ':lambda a, b: a[b % len(a)],
     '‖':lambda a, b: (list(a) if isinstance(a, (list, set)) else [a]) + (list(b) if isinstance(b, (list, set)) else [b]),
 
 }
@@ -331,7 +331,7 @@ def execute(tokens, index = 0, left = None, right = None):
     if not tokens:
         return
     
-    line = tokens[index - 1]
+    line = tokens[(index - 1) % len(tokens)]
     mode = line[0].count('>')
 
     if mode == 1:
