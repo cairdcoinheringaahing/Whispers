@@ -114,6 +114,8 @@ NILAD = re.compile(r'''
 		(
 			0
 		|
+			½
+		|
 			1j
 		|
 			∅
