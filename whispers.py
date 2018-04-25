@@ -16,7 +16,7 @@ e = math.e
 
 PRED    = B + 'ℂℕℙℝ' + U + 'ℤ¬⊤⊥'
 INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ'
-PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪"
+PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎"
 POSTFIX = '!’#²³ᵀᴺ'
 OPEN    = '|(\[⌈⌊{"'
 CLOSE   = '|)\]⌉⌋}"'
@@ -228,6 +228,7 @@ PREFIX_ATOMS = {
     '≺':lambda a: a - 1,
     '≻':lambda a: a + 1,
     '∪':lambda a: deduplicate(a),
+    '⍎':lambda a: eval(a) if type(a) == str else round(a),
 
 }
 
