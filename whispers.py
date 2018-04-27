@@ -4,6 +4,7 @@ import math
 import operator
 import re
 import sys
+import unicodedata
 
 sys.setrecursionlimit(1 << 16)
 
@@ -14,17 +15,45 @@ U = chr(120140)
 π = math.pi
 e = math.e
 
+product = functools.partial(functools.reduce, operator.mul)
+findall = lambda string, regex: list(filter(None, regex.match(string).groups()))
+normalise = lambda string: int(frombase(list(map(unicodedata.numeric, string)), 10))
+
 PRED    = B + 'ℂℕℙℝ' + U + 'ℤ¬⊤⊥'
 INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ'
 PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎"
 POSTFIX = '!’#²³ᵀᴺ'
 OPEN    = '|(\[⌈⌊{"'
 CLOSE   = '|)\]⌉⌋}"'
+LAMB    = 'λᶿᵝᵠ⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉₍₎ᵦᵩ'
+
+GROUPS = re.compile(r'''
+	(?:
+		({0})
+		(\d+)
+		({0})
+	)
+	|
+	(?:
+		({0})
+		(\d+)
+	)
+	|
+	(?:
+		(\d+)
+		({0})
+	)
+	|
+	(?:
+		(\d+)
+		(ᶿ)
+		({1})
+	)'''.format('[ᵝᵠ⁰¹²³⁴⁵⁶⁷⁸⁹]+', '[₀₁₂₃₄₅₆₇₈₉₍₎ᵦᵩ]+'), re.VERBOSE)
 
 PREDICATE = re.compile(r'''
 	^
 	(>>>\ )
-	([∀∃∄⊤⊥∑#≻])
+	([∀∃∄⊤⊥∑∏#≻])
 	(
 		(?:\d|[{}])+
 	)$
@@ -36,7 +65,7 @@ OPERATOR = re.compile(r'''
 	(?:
 		(id)
 	|
-		([1-9]\d*|[LR])([{}])([1-9]\d*|[LR])
+		([1-9]\d*|[LR])([{}])(λ?[1-9]\d*|[LR])
 	|
 		([{}])([1-9]\d*|[LR])([{}])
 	|
@@ -51,6 +80,45 @@ OPERATOR = re.compile(r'''
 	)?
 	$
 	'''.format(INFIX, OPEN, CLOSE, PREFIX, POSTFIX), re.VERBOSE)
+
+LAMBDA = re.compile(r'''
+	^
+	(>>\ )
+	(λ)
+	((?:
+		(?:
+			(?:
+				\ 
+				\d+
+				ᶿ
+				[₀₁₂₃₄₅₆₇₈₉₍₎ᵦᵩ]+
+			)
+			|
+			(?:
+				\ 
+				[⁰¹²³⁴⁵⁶⁷⁸⁹ᵝᵠ]+
+				\d+
+				[⁰¹²³⁴⁵⁶⁷⁸⁹ᵝᵠ]+
+			)
+			|
+			(?:
+				\ 
+				[⁰¹²³⁴⁵⁶⁷⁸⁹ᵝᵠ]+
+				\d+
+			)
+			|
+			(?:
+				\ 
+				\d+
+				[⁰¹²³⁴⁵⁶⁷⁸⁹ᵝᵠ]+
+			)
+		)+
+	)
+	|
+	(?:
+		(?:\ \d+)+
+	)
+	)$''', re.VERBOSE)
 
 STREAM = re.compile(r'''
 	^(>>?\ )
@@ -92,28 +160,27 @@ NILAD = re.compile(r'''
 		)
 	|
 		(
-			-?[1-9]\d*\.\d+
+			(-?[1-9]\d*|0)\.\d+
 		|
-			-?[1-9]\d*
+			(-?[1-9]\d*|0)
 		)
 	|
 		(
 			[\[{]
 			(
 				(
-					-?[1-9]\d*
+					
+					(-?[1-9]\d*|0)
 						(\.\d+)?
 					,\ ?
 				)*
-				-?[1-9]\d*
+				(-?[1-9]\d*|0)
 					(\.\d+)?
 			)*
 			[}\]]
 		)
 	|
 		(
-			0
-		|
 			½
 		|
 			1j
@@ -162,7 +229,7 @@ LOOP = re.compile(r'''
 	$
 	''', re.VERBOSE)
 
-REGEXES = [PREDICATE, OPERATOR, STREAM, NILAD, LOOP]
+REGEXES = [PREDICATE, OPERATOR, LAMBDA, STREAM, NILAD, LOOP]
 CONST_STDIN = sys.stdin.read()
 
 INFIX_ATOMS = {
@@ -214,7 +281,7 @@ INFIX_ATOMS = {
 PREFIX_ATOMS = {
 
     '∑':lambda a: sum(a),
-    '∏':lambda a: functools.reduce(operator.mul, a),
+    '∏':lambda a: product(a),
     '#':lambda a: len(a),
     '√':lambda a: math.sqrt(a),
     "'":lambda a: chr(a),
@@ -236,7 +303,7 @@ POSTFIX_ATOMS = {
 
     '!':lambda a: math.factorial(a),
     '’':lambda a: prime(a),
-    '#':lambda a: functools.reduce(operator.mul, [i for i in range(1, a+1) if prime(i)]),
+    '#':lambda a: product([i for i in range(1, a+1) if prime(i)]),
     '²':lambda a: a ** 2,
     '³':lambda a: a ** 3,
     'ᵀ':lambda a: transpose(a),
@@ -323,13 +390,16 @@ def runpredicate(code, value):
         
     return '⊤' if final else '⊥'
 
-def execute(tokens, index = 0, left = None, right = None):
+def execute(tokens, index = 0, left = None, right = None, args = None):
 
     def getvalue(value):
         if value == 'L':
-            return left
+            return left  if left  is not None else 0
         if value == 'R':
-            return right
+            return right if right is not None else 0
+
+        if all(c in '⁰¹²³⁴⁵⁶⁷⁸⁹' for c in value):
+            return args[normalise(value) - 1] if args is not None else 0
         
         return execute(tokens, int(value))
         
@@ -353,15 +423,18 @@ def execute(tokens, index = 0, left = None, right = None):
                 for value in list(left):
                     if runpredicate(pred, value) == '⊤':
                         return value
+                return []
             else:
                 while runpredicate(pred, left) == '⊥':
                     left += 1
                 return left
             
         if mode == '∑':
-            return sum(runpredicate(pred, value) == '⊤' for value in left)
+            return sum(list(filter(lambda v: runpredicate(pred, v) == '⊤', left)))
+        if mode == '∏':
+            return product(list(filter(lambda v: runpredicate(pred, v) == '⊤', left)))
         if mode == '#':
-            return list(filter(lambda v: runpredicate(pred, v) == '⊤', left))
+            return len(list(filter(lambda v: runpredicate(pred, v) == '⊤', left)))
 
         if mode == '∀':
             ret = all(runpredicate(pred, value) == '⊤' for value in left)
@@ -396,8 +469,9 @@ def execute(tokens, index = 0, left = None, right = None):
         if line[1] in INFIX:
             larg, atom, rarg = line
             if atom == '∘':
-                larg = getvalue(larg)
+                larg = int(larg)
                 rarg = getvalue(rarg)
+                print(tokens, larg, rarg)
                 return execute(tokens, larg, rarg)
             else:
                 larg = getvalue(larg)
@@ -414,12 +488,96 @@ def execute(tokens, index = 0, left = None, right = None):
             target = getvalue(line[1])
             return atom(target)
 
+    if LAMBDA.search(joined):
+        line = line[2]
+
+        if re.search(r'^(\ \d+)+$', line):
+            target, *argtarget = line.strip().split()
+            target = int(target)
+            argtarget = list(map(getvalue, argtarget))
+            return execute(tokens, target, args = argtarget)
+
+        else:
+            statements = line.split()
+            results = []
+            for index, state in enumerate(statements):
+
+                groups = findall(state, GROUPS)
+
+                if len(groups) == 3:
+
+                    if groups[1] == 'ᶿ':
+                        indexes = re.findall('(₍[₀₁₂₃₄₅₆₇₈₉]+₎)|([₀₁₂₃₄₅₆₇₈₉ᵦᵩ])', groups[2])
+                        indexes = list(filter(None, sum(indexes, tuple())))
+                        indexes = list(map(lambda a: normalise(a.strip('₍₎')), indexes))
+
+                        subret = list(map(lambda i: results[i - 1], indexes))
+                        target = int(groups[0])
+                        results.append(execute(tokens, target, left = subret))
+                        continue
+
+                    if groups[0] not in 'ᵝᵠ':
+                        larg = getvalue(groups[0])
+                    elif groups[0] == 'ᵝ':
+                        try: larg = results[index - 1]
+                        except: larg = getvalue('¹')
+                    elif groups[0] == 'ᵠ':
+                        try: larg = results[index + 1]
+                        except: larg = getvalue('²')
+                    
+                    if groups[2] not in 'ᵝᵠ':
+                        rarg = getvalue(groups[2])
+                    elif groups[2] == 'ᵝ':
+                        try: rarg = results[index - 1]
+                        except: rarg = getvalue('¹')
+                    elif groups[2] == 'ᵠ':
+                        try: rarg = results[index + 1]
+                        except: rarg = getvalue('²')
+
+                    target = int(groups[1])
+                    results.append(execute(tokens, target, left = larg, right = rarg))
+
+                if len(groups) == 2:
+                    if groups[0].isdecimal():
+                        target = int(groups[0])
+
+                        if groups[1] not in 'ᵝᵠ':
+                            larg = getvalue(groups[1])
+                        elif groups[1] == 'ᵝ':
+                            try: larg = results[index - 1]
+                            except: larg = getvalue('¹')
+                        elif groups[1] == 'ᵠ':
+                            try: larg = results[index + 1]
+                            except: larg = getvalue('²')
+                       
+                        results.append(execute(tokens, target, left = larg))
+
+                    else:
+                        target = int(groups[1])
+
+                        if groups[0] not in 'ᵝᵠ':
+                            larg = getvalue(groups[0])
+                        elif groups[0] == 'ᵝ':
+                            try: larg = results[index - 1]
+                            except: larg = getvalue('¹')
+                        elif groups[0] == 'ᵠ':
+                            try: larg = results[index + 1]
+                            except: larg = getvalue('²')
+                       
+                        results.append(execute(tokens, target, right = larg))
+
+                if len(groups) == 1:
+                    target = int(groups[0])
+                    results.append(execute(tokens, target))
+
+            return results.pop()
+
     if STREAM.search(joined):
         if line[1] == 'Output ':
             targets = ''.join(line[2:]).split()
             for target in targets:
-                 string = getvalue(target)
-                 output(string)
+                string = getvalue(target)
+                output(string)
             return string
 
         if line[1].strip() == 'Error':
@@ -571,21 +729,26 @@ def tobase(value, base):
     return digits[::-1]
 
 def tokenise(regex, string):
-    result = list(filter(None, regex.match(string).groups()))
+    result = findall(string, regex)
     if result[0] == '> ':
         return result[:2]
     return result
 
-def tokenizer(code, stdin):
+def tokenizer(code, stdin, debug = False):
+
     for line in stdin.split('\n'):
         try: code = code.replace('> Input\n', '> {}\n'.format(eval(line)), 1)
         except: code = code.replace('> Input\n', '> "{}"\n'.format(line), 1)
+
     code = code.split('\n')
     final = []
+
     for line in code:
         for regex in REGEXES:
+            if debug: print(repr(line), regex.search(line))
             if regex.search(line):
                 final.append(tokenise(regex, line))
+        if debug: print()
     return final
 
 def transpose(array):
@@ -602,16 +765,26 @@ def tryeval(value, stdin=True):
     return value
 
 if __name__ == '__main__':
-    program = sys.argv[1]
-    flag = sys.argv[2] in ['--tokens', '-t'] if len(sys.argv) > 2 else False
+    try:
+        program = sys.argv[1]
+    except IndexError:
+        sys.exit(0)
+
+    flags = ['--tokens', '-t', '--Tokens', '-T', '--parser', '-p']
+
+    flag = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] in flags else False
 
     try:
         program = open(program, 'r', encoding='utf-8').read()
     except:
         pass
 
-    if flag:
+    if flag in ['--tokens', '-t']:
         print(tokenizer(program, CONST_STDIN))
+    elif flag in ['--Tokens', '-T']:
+        print(*tokenizer(program, CONST_STDIN), sep = '\n')
+    elif flag in ['--parser', '-p']:
+        tokenizer(program, CONST_STDIN, debug = True)
     else:
         try:
             execute(tokenizer(program, CONST_STDIN))
