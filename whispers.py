@@ -635,9 +635,6 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
             if all(type(a) == str for a in final):
                 return ''.join(final)
 
-            if len(final) == 1:
-                return final[0]
-
             return final
 
         if loop in '∑∏…':
