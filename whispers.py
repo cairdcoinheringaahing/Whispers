@@ -20,9 +20,9 @@ findall = lambda string, regex: list(filter(None, regex.match(string).groups()))
 normalise = lambda string: int(frombase(list(map(unicodedata.numeric, string)), 10))
 
 PRED    = B + 'ℂℕℙℝ' + U + 'ℤ¬⊤⊥'
-INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ'
+INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ∓∕∠≮≯≰≱∧∨⋇⊼⊽∢⊿'
 PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎"
-POSTFIX = '!’#²³ᵀᴺ'
+POSTFIX = '!’#²³ᵀᴺ°ᴿ'
 OPEN    = '|(\[⌈⌊{"'
 CLOSE   = '|)\]⌉⌋}"'
 LAMB    = 'λᶿᵝᵠ⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉₍₎ᵦᵩ'
@@ -265,7 +265,7 @@ INFIX_ATOMS = {
     '∣':lambda a, b: not (a % b),
     '∤':lambda a, b: bool(a % b),
     '⊓':lambda a, b: math.gcd(a, b),
-    '⊔':lambda a, b: a*b//math.gcd(a, b),
+    '⊔':lambda a, b: a * b // math.gcd(a, b),
     '⊥':lambda a, b: tobase(a, b),
     '⊤':lambda a, b: frombase(a, b),
     '…':lambda a, b: set(range(a, b+1)),
@@ -275,6 +275,20 @@ INFIX_ATOMS = {
     '‖':lambda a, b: (list(a) if isinstance(a, (list, set)) else [a]) + (list(b) if isinstance(b, (list, set)) else [b]),
     'ᶠ':lambda a, b: a[:b],
     'ᵗ':lambda a, b: a[b:],
+	'∓':lambda a, b: [a-b, a+b],
+	'∕':lambda a, b: int(a / b),
+	'∠':lambda a, b: [math.sin, math.cos, math.tan, math.asin, math.acos, math.atan][b%6](a),
+	'≮':lambda a, b: not(a < b),
+	'≯':lambda a, b: not(a > b),
+	'≰':lambda a, b: not(a <= b),
+	'≱':lambda a, b: not(a >= b),
+	'∧':lambda a, b: a and b,
+	'∨':lambda a, b: a or b,
+	'⋇':lambda a, b: [a * b, a / b],
+	'⊼':lambda a, b: not(a and b),
+	'⊽':lambda a, b: not(a or b),
+	'∢':lambda a, b: [math.sinh, math.cosh, math.tanh, math.asinh, math.acosh, math.atanh][b%6](a),
+	'⊿':lambda a, b: math.hypot(a, b),
 
 }
 
@@ -308,6 +322,8 @@ POSTFIX_ATOMS = {
     '³':lambda a: a ** 3,
     'ᵀ':lambda a: transpose(a),
     'ᴺ':lambda a: sorted(a),
+	'°':lambda a: math.degrees(a),
+	'ᴿ':lambda a: math.radians(a),
 
 }
 
