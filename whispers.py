@@ -17,38 +17,13 @@ e = math.e
 
 product = functools.partial(functools.reduce, operator.mul)
 findall = lambda string, regex: list(filter(None, regex.match(string).groups()))
-normalise = lambda string: int(frombase(list(map(unicodedata.numeric, string)), 10))
 
 PRED    = B + 'ℂℕℙℝ' + U + 'ℤ¬⊤⊥'
-INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊈⊂⊄⊅⊃⊉⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ∓∕∠≮≯≰≱∧∨⋇⊼⊽∢⊿j≪≫'
+INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ∓∕∠≮≯≰≱∧∨⋇⊼⊽∢⊿j≪≫⊈⊉'
 PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎"
 POSTFIX = '!’#²³ᵀᴺ°ᴿ'
 OPEN    = '|(\[⌈⌊{"'
 CLOSE   = '|)\]⌉⌋}"'
-LAMB    = 'λᶿᵝᵠ⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉₍₎ᵦᵩ'
-
-GROUPS = re.compile(r'''
-	(?:
-		({0})
-		(\d+)
-		({0})
-	)
-	|
-	(?:
-		({0})
-		(\d+)
-	)
-	|
-	(?:
-		(\d+)
-		({0})
-	)
-	|
-	(?:
-		(\d+)
-		(ᶿ)
-		({1})
-	)'''.format('[ᵝᵠ⁰¹²³⁴⁵⁶⁷⁸⁹]+', '[₀₁₂₃₄₅₆₇₈₉₍₎ᵦᵩ]+'), re.VERBOSE)
 
 PREDICATE = re.compile(r'''
 	^
@@ -80,45 +55,6 @@ OPERATOR = re.compile(r'''
 	)?
 	$
 	'''.format(INFIX, OPEN, CLOSE, PREFIX, POSTFIX), re.VERBOSE)
-
-LAMBDA = re.compile(r'''
-	^
-	(>>\ )
-	(λ)
-	((?:
-		(?:
-			(?:
-				\ 
-				\d+
-				ᶿ
-				[₀₁₂₃₄₅₆₇₈₉₍₎ᵦᵩ]+
-			)
-			|
-			(?:
-				\ 
-				[⁰¹²³⁴⁵⁶⁷⁸⁹ᵝᵠ]+
-				\d+
-				[⁰¹²³⁴⁵⁶⁷⁸⁹ᵝᵠ]+
-			)
-			|
-			(?:
-				\ 
-				[⁰¹²³⁴⁵⁶⁷⁸⁹ᵝᵠ]+
-				\d+
-			)
-			|
-			(?:
-				\ 
-				\d+
-				[⁰¹²³⁴⁵⁶⁷⁸⁹ᵝᵠ]+
-			)
-		)+
-	)
-	|
-	(?:
-		(?:\ \d+)+
-	)
-	)$''', re.VERBOSE)
 
 STREAM = re.compile(r'''
 	^(>>?\ )
@@ -229,7 +165,7 @@ LOOP = re.compile(r'''
 	$
 	''', re.VERBOSE)
 
-REGEXES = [PREDICATE, OPERATOR, LAMBDA, STREAM, NILAD, LOOP]
+REGEXES = [PREDICATE, OPERATOR, STREAM, NILAD, LOOP]
 CONST_STDIN = sys.stdin.read()
 
 INFIX_ATOMS = {
@@ -275,25 +211,25 @@ INFIX_ATOMS = {
     '‖':lambda a, b: (list(a) if isinstance(a, (list, set)) else [a]) + (list(b) if isinstance(b, (list, set)) else [b]),
     'ᶠ':lambda a, b: a[:b],
     'ᵗ':lambda a, b: a[b:],
-	'∓':lambda a, b: [a-b, a+b],
-	'∕':lambda a, b: int(a / b),
-	'∠':lambda a, b: [math.sin, math.cos, math.tan, math.asin, math.acos, math.atan][b%6](a),
-	'≮':lambda a, b: not(a < b),
-	'≯':lambda a, b: not(a > b),
-	'≰':lambda a, b: not(a <= b),
-	'≱':lambda a, b: not(a >= b),
-	'∧':lambda a, b: a and b,
-	'∨':lambda a, b: a or b,
-	'⋇':lambda a, b: [a * b, a / b],
-	'⊼':lambda a, b: not(a and b),
-	'⊽':lambda a, b: not(a or b),
-	'∢':lambda a, b: [math.sinh, math.cosh, math.tanh, math.asinh, math.acosh, math.atanh][b%6](a),
-	'⊿':lambda a, b: math.hypot(a, b),
-	'j':lambda a, b: complex(a, b),
-	'≪':lambda a, b: a << b,
-	'≫':lambda a, b: a >> b,
-	'⊈':lambda a, b: a.issubset(b) and a != b,
-	'⊉':lambda a, b: a.issuperset(b) and a != b,
+    '∓':lambda a, b: [a-b, a+b],
+    '∕':lambda a, b: int(a / b),
+    '∠':lambda a, b: [math.sin, math.cos, math.tan, math.asin, math.acos, math.atan][b%6](a),
+    '≮':lambda a, b: not(a < b),
+    '≯':lambda a, b: not(a > b),
+    '≰':lambda a, b: not(a <= b),
+    '≱':lambda a, b: not(a >= b),
+    '∧':lambda a, b: a and b,
+    '∨':lambda a, b: a or b,
+    '⋇':lambda a, b: [a * b, a // b],
+    '⊼':lambda a, b: not(a and b),
+    '⊽':lambda a, b: not(a or b),
+    '∢':lambda a, b: [math.sinh, math.cosh, math.tanh, math.asinh, math.acosh, math.atanh][b%6](a),
+    '⊿':lambda a, b: math.hypot(a, b),
+    'j':lambda a, b: complex(a, b),
+    '≪':lambda a, b: a << b,
+    '≫':lambda a, b: a >> b,
+    '⊈':lambda a, b: a.issubset(b) and a != b,
+    '⊉':lambda a, b: a.issuperset(b) and a != b,
 
 }
 
@@ -327,8 +263,8 @@ POSTFIX_ATOMS = {
     '³':lambda a: a ** 3,
     'ᵀ':lambda a: transpose(a),
     'ᴺ':lambda a: sorted(a),
-	'°':lambda a: math.degrees(a),
-	'ᴿ':lambda a: math.radians(a),
+    '°':lambda a: math.degrees(a),
+    'ᴿ':lambda a: math.radians(a),
 
 }
 
@@ -418,9 +354,6 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
             return left  if left  is not None else 0
         if value == 'R':
             return right if right is not None else 0
-
-        if all(c in '⁰¹²³⁴⁵⁶⁷⁸⁹' for c in value):
-            return args[normalise(value) - 1] if args is not None else 0
         
         return execute(tokens, int(value))
         
@@ -492,7 +425,6 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
             if atom == '∘':
                 larg = int(larg)
                 rarg = getvalue(rarg)
-                print(tokens, larg, rarg)
                 return execute(tokens, larg, rarg)
             else:
                 larg = getvalue(larg)
@@ -508,91 +440,7 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
 
             target = getvalue(line[1])
             return atom(target)
-
-    if LAMBDA.search(joined):
-        line = line[2]
-
-        if re.search(r'^(\ \d+)+$', line):
-            target, *argtarget = line.strip().split()
-            target = int(target)
-            argtarget = list(map(getvalue, argtarget))
-            return execute(tokens, target, args = argtarget)
-
-        else:
-            statements = line.split()
-            results = []
-            for index, state in enumerate(statements):
-
-                groups = findall(state, GROUPS)
-
-                if len(groups) == 3:
-
-                    if groups[1] == 'ᶿ':
-                        indexes = re.findall('(₍[₀₁₂₃₄₅₆₇₈₉]+₎)|([₀₁₂₃₄₅₆₇₈₉ᵦᵩ])', groups[2])
-                        indexes = list(filter(None, sum(indexes, tuple())))
-                        indexes = list(map(lambda a: normalise(a.strip('₍₎')), indexes))
-
-                        subret = list(map(lambda i: results[i - 1], indexes))
-                        target = int(groups[0])
-                        results.append(execute(tokens, target, left = subret))
-                        continue
-
-                    if groups[0] not in 'ᵝᵠ':
-                        larg = getvalue(groups[0])
-                    elif groups[0] == 'ᵝ':
-                        try: larg = results[index - 1]
-                        except: larg = getvalue('¹')
-                    elif groups[0] == 'ᵠ':
-                        try: larg = results[index + 1]
-                        except: larg = getvalue('²')
-                    
-                    if groups[2] not in 'ᵝᵠ':
-                        rarg = getvalue(groups[2])
-                    elif groups[2] == 'ᵝ':
-                        try: rarg = results[index - 1]
-                        except: rarg = getvalue('¹')
-                    elif groups[2] == 'ᵠ':
-                        try: rarg = results[index + 1]
-                        except: rarg = getvalue('²')
-
-                    target = int(groups[1])
-                    results.append(execute(tokens, target, left = larg, right = rarg))
-
-                if len(groups) == 2:
-                    if groups[0].isdecimal():
-                        target = int(groups[0])
-
-                        if groups[1] not in 'ᵝᵠ':
-                            larg = getvalue(groups[1])
-                        elif groups[1] == 'ᵝ':
-                            try: larg = results[index - 1]
-                            except: larg = getvalue('¹')
-                        elif groups[1] == 'ᵠ':
-                            try: larg = results[index + 1]
-                            except: larg = getvalue('²')
-                       
-                        results.append(execute(tokens, target, left = larg))
-
-                    else:
-                        target = int(groups[1])
-
-                        if groups[0] not in 'ᵝᵠ':
-                            larg = getvalue(groups[0])
-                        elif groups[0] == 'ᵝ':
-                            try: larg = results[index - 1]
-                            except: larg = getvalue('¹')
-                        elif groups[0] == 'ᵠ':
-                            try: larg = results[index + 1]
-                            except: larg = getvalue('²')
-                       
-                        results.append(execute(tokens, target, right = larg))
-
-                if len(groups) == 1:
-                    target = int(groups[0])
-                    results.append(execute(tokens, target))
-
-            return results.pop()
-
+        
     if STREAM.search(joined):
         if line[1] == 'Output ':
             targets = ''.join(line[2:]).split()
