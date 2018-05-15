@@ -20,7 +20,7 @@ findall = lambda string, regex: list(filter(None, regex.match(string).groups()))
 normalise = lambda string: int(frombase(list(map(unicodedata.numeric, string)), 10))
 
 PRED    = B + 'ℂℕℙℝ' + U + 'ℤ¬⊤⊥'
-INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ∓∕∠≮≯≰≱∧∨⋇⊼⊽∢⊿j'
+INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ∓∕∠≮≯≰≱∧∨⋇⊼⊽∢⊿j≪≫'
 PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎"
 POSTFIX = '!’#²³ᵀᴺ°ᴿ'
 OPEN    = '|(\[⌈⌊{"'
@@ -290,6 +290,8 @@ INFIX_ATOMS = {
 	'∢':lambda a, b: [math.sinh, math.cosh, math.tanh, math.asinh, math.acosh, math.atanh][b%6](a),
 	'⊿':lambda a, b: math.hypot(a, b),
 	'j':lambda a, b: complex(a, b),
+	'≪':lambda a, b: a << b,
+	'≫':lambda a, b: a >> b,
 
 }
 
