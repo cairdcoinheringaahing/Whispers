@@ -6,7 +6,8 @@ import re
 import sys
 import unicodedata
 
-math.gcd = lambda a, b: math.gcd(b, a % b) if b else a
+if not hasattr(math, 'gcd'):
+    math.gcd = lambda a, b: math.gcd(b, a % b) if b else a
 
 sys.setrecursionlimit(1 << 16)
 
