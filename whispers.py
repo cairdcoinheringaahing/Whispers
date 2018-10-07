@@ -6,6 +6,8 @@ import re
 import sys
 import unicodedata
 
+math.gcd = lambda a, b: math.gcd(b, a % b) if b else a
+
 sys.setrecursionlimit(1 << 16)
 
 B = chr(120121)
@@ -17,13 +19,107 @@ e = math.e
 
 product = functools.partial(functools.reduce, operator.mul)
 findall = lambda string, regex: list(filter(None, regex.match(string).groups()))
+square = lambda a: a ** 2
 
-PRED    = B + 'ℂℕℙℝ' + U + 'ℤ¬⊤⊥'
-INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ∓∕∠≮≯≰≱∧∨⋇⊼⊽∢⊿j≪≫⊈⊉'
-PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎"
-POSTFIX = '!’#²³ᵀᴺ°ᴿ'
+class Vector:
+    def __init__(self, start, *components):
+        if isinstance(components[0], str):
+            end, *components = components
+            self.named = False
+        else:
+            self.named = True
+            end = None
+            
+        self.start = start
+        self.end = end
+        self.parts = components
+
+    @property
+    def θ(self):
+        parts = list(self.parts)
+        numer = parts.pop()
+        denom = abs(Vector('', *parts))
+        return math.degrees(math.atan(numer / denom))
+
+    @property
+    def unit(self):
+        div = abs(self)
+        return Vector('i', *list(map(lambda a: a / div, self.parts)))
+
+    def __repr__(self):
+        if self.named:
+            return '{}=({})'.format(self.start, ' '.join(map(str, self.parts)))
+        return '{}→{}({})'.format(self.start, self.end, ' '.join(map(str, self.parts)))
+
+    def __abs__(self):
+        return math.sqrt(sum(map(square, self.parts)))
+
+    def __mul__(self, other):
+        return sum(map(operator.mul, self.parts, other.parts))
+
+    def __add__(self, other):
+        return Vector('A', 'B', *list(map(operator.add, self.parts, other.parts)))
+
+    def __sub__(self, other):
+        return Vector('A', 'B', *list(map(operator.sub, self.parts, other.parts)))
+
+    def __pow__(self, power):
+        return abs(self) ** power
+
+    def angle(self, other):
+        return math.degrees(math.acos((self * other) / (abs(self) * abs(other))))
+
+    def parallel(self, other):
+        return Vector.angle(self, other) == 0
+
+    def perpendicular(self, other):
+        return Vector.angle(self, other) == 90
+
+    def x(self, other):
+        print('NotYetImplemented')
+        return self
+
+class Coords:
+    def __init__(self, name, *axis):
+        self.name = name
+        self.axis = axis
+
+    def __repr__(self):
+        return '{}({})'.format(self.name, ', '.join(map(str, self.axis)))
+
+class InfSet:
+    def __init__(self, bold, condition):
+        self.bold = bold
+        self.cond = condition
+
+    def __repr__(self):
+        return 'x ∈ {}'.format(self.bold)
+
+    def __contains__(self, other):
+        return self.cond(other)
+
+    def __add__(self, other):
+        return InfSet('{}∪{}'.format(self.bold, other.bold), lambda a: self.cond(a) or other.cond(a))
+
+    def __mul__(self, other):
+        return InfSet('{}∩{}'.format(self.bold, other.bold), lambda a: self.cond(a) and other.cond(a))
+
+    __or__   = __add__
+    __ror__  = __add__
+    __radd__ = __add__
+    __and__  = __mul__
+    __rand__ = __mul__
+    __rmul__ = __mul__
+
+PRED    = B + 'ℂℕℙℚℝ' + U + 'ℤ¬⊤⊥'
+INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ∓∕∠≮≯≰≱∧∨⋇⊼⊽∢⊿j≪≫⊈⊉½→∥∦⟂⊾∡√'
+PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎R₁"
+POSTFIX = '!’#²³ᵀᴺ°ᴿ₁'
 OPEN    = '|(\[⌈⌊{"'
 CLOSE   = '|)\]⌉⌋}"'
+NILADS  = '½∅' + B + 'ℂℕℙℝ' + U + 'ℤ'
+
+# RIP ℚ
 
 PREDICATE = re.compile(r'''
 	^
@@ -61,9 +157,9 @@ STREAM = re.compile(r'''
 	(?:
 		(Output\ )
 		((?:
-			(?:\d+|[LR])
+			(?:\d+|[LR]|LAST)
 		\ )*)
-		(\d+|[LR])
+		(\d+|[LR]|LAST)
 	|
 		(Input
 			(?:All)?
@@ -99,6 +195,8 @@ NILAD = re.compile(r'''
 			(-?[1-9]\d*|0)\.\d+
 		|
 			(-?[1-9]\d*|0)
+		|
+			\((-?[1-9]\d*|0)[+-]([1-9]\d*|0)j\)
 		)
 	|
 		(
@@ -132,10 +230,44 @@ NILAD = re.compile(r'''
 			\[]
 		|
 			{}
+		|
+			[%s]
 		)
+	|
+		(
+			[A-Z]
+			\(
+			(
+				(
+					
+					(-?[1-9]\d*|0)
+						(\.\d+)?
+					,\ ?
+				)*
+				(-?[1-9]\d*|0)
+					(\.\d+)?
+			)*
+			\)
+		)
+        |
+		(
+			[A-Z]→[A-Z]
+			\(
+			(
+				(
+					
+					(-?[1-9]\d*|0)
+						(\.\d+)?
+					\ 
+				)*
+				(-?[1-9]\d*|0)
+					(\.\d+)?
+			)*
+                        \)
+                )
 	)
 	$
-	''', re.VERBOSE)
+	''' % ('\n			'.join(NILADS)), re.VERBOSE)
 
 LOOP = re.compile(r'''
 	^
@@ -180,7 +312,7 @@ INFIX_ATOMS = {
     '-':lambda a, b: a - b,
     '±':lambda a, b: [a+b, a-b],
     '⋅':lambda a, b: a * b,
-    '×':lambda a, b: set(map(frozenset, itertools.product(a, b))),
+    '×':lambda a, b: a.x(b) if isinstance(a, Vector) else set(map(frozenset, itertools.product(a, b))),
     '÷':lambda a, b: a / b,
     '*':lambda a, b: a ** b,
     '%':lambda a, b: a % b,
@@ -230,6 +362,14 @@ INFIX_ATOMS = {
     '≫':lambda a, b: a >> b,
     '⊈':lambda a, b: a.issubset(b) and a != b,
     '⊉':lambda a, b: a.issuperset(b) and a != b,
+    '½':lambda a, b: Coords('M', *list(map(lambda a, b: (a + b) / 2, b.axis, a.axis))),
+    '→':lambda a, b: Vector(a.name, b.name, *list(map(operator.sub, b.axis, a.axis))),
+    '∥':lambda a, b: a.parallel(b),
+    '∦':lambda a, b: not a.parallel(b),
+    '⟂':lambda a, b: a.perpendicular(b) if isinstance(a, Vector) else (math.gcd(a, b) == 1),
+    '⊾':lambda a, b: not a.perpendicular(b) if isinstance(a, Vector) else (math.gcd(a, b) != 1),
+    '∡':lambda a, b: a.angle(b),
+    '√':lambda a, b: a ** (1 / b),
 
 }
 
@@ -251,6 +391,7 @@ PREFIX_ATOMS = {
     '≻':lambda a: a + 1,
     '∪':lambda a: deduplicate(a),
     '⍎':lambda a: eval(a) if type(a) == str else round(a),
+    'R':lambda a: (abs(a), a.θ),
 
 }
 
@@ -265,6 +406,7 @@ POSTFIX_ATOMS = {
     'ᴺ':lambda a: sorted(a),
     '°':lambda a: math.degrees(a),
     'ᴿ':lambda a: math.radians(a),
+    '₁':lambda a: a.unit,
 
 }
 
@@ -280,6 +422,7 @@ SURROUND_ATOMS = {
     '()':lambda a: set(range(1, a)),
     '{}':lambda a: set(a),
     '""':lambda a: str(a),
+    '‖‖':lambda a: abs(a),
 
 }
 
@@ -304,6 +447,20 @@ JUNCTION_ATOMS = {
     '∧':lambda a, b: a & b,
     '∨':lambda a, b: a | b,
     '⊕':lambda a, b: a ^ b,
+
+}
+
+NILAD_ATOMS = {
+
+    '½':0.5,
+    '∅':set(),
+     B :set([0, 1]),
+    'ℂ':InfSet('ℂ', lambda a: isinstance(a, complex)),
+    'ℕ':InfSet('ℕ', lambda a: int(a) == a > 0),
+    'ℙ':InfSet('ℙ', lambda a: prime(a)),
+    'ℝ':InfSet('ℝ', lambda a: isinstance(a, (float, int))),
+     U :InfSet(U, lambda a: isinstance(a, (bool, complex, float, int))),
+    'ℤ':InfSet('ℤ', lambda a: isinstance(a, int)),
 
 }
 
@@ -354,12 +511,15 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
             return left  if left  is not None else 0
         if value == 'R':
             return right if right is not None else 0
+
+        if value == 'LAST':
+            return execute(tokens, -1)
         
         return execute(tokens, int(value))
         
     if not tokens:
         return
-    
+
     line = tokens[(index - 1) % len(tokens)]
     mode = line[0].count('>')
 
@@ -576,6 +736,8 @@ def output(value, file = 1):
         print(value, file = file)
 
 def prime(n):
+    if not isinstance(n, int):
+        return False
     for i in range(2, int(n)):
         if n%i == 0: return False
     return n > 1 and type(n) == int
@@ -626,9 +788,24 @@ def tryeval(value, stdin=True):
     except:
         if not stdin:
             return value
+        
         if value == 'InputAll':
             return CONST_STDIN
-    return value
+        
+        if re.search(r'^[A-Z]\(.*?\)', value):
+            axis = list(map(lambda a: int(a[0]), re.findall(r'(-?[1-9]\d*|0)(\.\d+)?', value)))
+            name = re.search(r'[A-Z]', value).group()
+            return Coords(name, *axis)
+
+        if re.search(r'^[A-Z]→[A-Z]\(.*?\)', value):
+            axis = list(map(lambda a: int(a[0]), re.findall(r'(-?[1-9]\d*|0)(\.\d+)?', value)))
+            start, end = re.findall(r'[A-Z]', value)
+            return Vector(start, end, *axis)
+
+    try:
+        return NILAD_ATOMS[value]
+    except:
+        return value
 
 if __name__ == '__main__':
     try:
@@ -655,6 +832,10 @@ if __name__ == '__main__':
         try:
             execute(tokenizer(program, CONST_STDIN))
             if re.search(r'^>>> ', program, re.MULTILINE) and not re.search(r'^>> Output', program, re.MULTILINE):
-                print('⊤')
+                output_file = sys.stdout
+            else:
+                output_file = sys.stderr
+                
+            print('⊤', file = output_file)
         except AssertionError:
             print('⊥')
