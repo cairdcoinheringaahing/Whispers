@@ -9,6 +9,20 @@ import unicodedata
 if not hasattr(math, 'gcd'):
     math.gcd = lambda a, b: math.gcd(b, a % b) if b else a
 
+math.sec = lambda a: 1 / math.cos(a)
+math.csc = lambda a: 1 / math.sin(a)
+math.cot = lambda a: 1 / math.tan(a)
+math.sech = lambda a: 1 / math.cosh(a)
+math.csch = lambda a: 1 / math.sinh(a)
+math.coth = lambda a: 1 / math.tanh(a)
+
+math.asec = lambda a: math.acos(1 / a)
+math.acsc = lambda a: math.asin(1 / a)
+math.acot = lambda a: math.atan(1 / a)
+math.asech = lambda a: math.acosh(1 / a)
+math.acsch = lambda a: math.asinh(1 / a)
+math.acoth = lambda a: math.atanh(1 / a)
+
 sys.setrecursionlimit(1 << 16)
 
 B = chr(120121)
@@ -112,6 +126,90 @@ class InfSet:
     __rand__ = __mul__
     __rmul__ = __mul__
 
+class Radian(float):
+    def __init__(self, value):
+        self.value = terms(value)
+        
+        if product(self.value) < 0:
+            self.mult = -1
+            self.value = list(map(abs, self.value))
+        else:
+            self.mult = 1
+
+    def __repr__(self):
+        if self.value[1] == 0:
+            return str(self.value[0])
+        
+        if self.value[0] == self.value[1]:
+            return '{}π'.format(self.disp)
+        
+        if self.value[0] == 1:
+            return '{}π/{}'.format(self.disp, self.value[1])
+        
+        if self.value[1] == 1:
+            return '{}{}π'.format(self.disp, self.value[0])
+        
+        return '{}{}π/{}'.format(self.disp, *self.value)
+
+    @property
+    def disp(self):
+        return '-' * (self.mult == -1)
+
+    def __abs__(self):
+        n, d = self.value
+        return Radian((n * π) / d)
+
+    def __add__(self, other):
+        return Radian(super().__add__(other))
+
+    def __floordiv__(self, other):
+        return Radian(super().__floordiv__(other))
+
+    def __mul__(self, other):
+        return Radian(super().__mul__(other))
+
+    def __neg__(self):
+        n, d = self.value
+        m = -self.mult
+        return Radian((m * n * π) / d)
+
+    def __pos__(self):
+        n, d = self.value
+        return Radian((n * π) / d)
+
+    def __rfloordiv__(self, other):
+        return Radian(super().__rfloordiv__(other))
+
+    def __rsub__(self, other):
+        return Radian(super().__rsub__(other))
+
+    def __rtruediv__(self, other):
+        return Radian(super().__rtruediv__(other))
+
+    def __sub__(self, other):
+        return Radian(super().__sub__(other))
+
+    def __truediv__(self, other):
+        return Radian(super().__truediv__(other))
+
+    def as_integer_ratio(self):
+        return self.value
+
+    def is_integer(self):
+        return self.value[1] == 0
+
+    def as_float(self):
+        return self.value[0] / self.value[1]
+
+    def easy(self):
+        if any(i > 18 for i in self.value):
+            return self.as_float()
+        return self
+
+    __radd__ = __add__
+    __rmul__ = __mul__
+    __str__ = __repr__
+
 PRED    = B + 'ℂℕℙℚℝ' + U + 'ℤ¬⊤⊥'
 INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ∓∕∠≮≯≰≱∧∨⋇⊼⊽∢⊿j≪≫⊈⊉½→∥∦⟂⊾∡√'
 PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎R₁"
@@ -119,6 +217,19 @@ POSTFIX = '!’#²³ᵀᴺ°ᴿ₁'
 OPEN    = '|(\[⌈⌊{"'
 CLOSE   = '|)\]⌉⌋}"'
 NILADS  = '½∅' + B + 'ℂℕℙℝ' + U + 'ℤ'
+FUNCS   = ['sin', 'cos', 'tan', 'sec', 'csc', 'cot',
+           'arcsin', 'arccos', 'arctan', 'arcsec', 'arccsc', 'arccot',
+           'cosh', 'sinh', 'tanh', 'sech', 'csch', 'coth',
+           'arccosh', 'arcsinh', 'arctanh', 'arcsech', 'arccsch', 'arccoth',
+           '∂sin', '∂cos', '∂tan', '∂sec', '∂csc', '∂cot',
+           '∂arcsin', '∂arccos', '∂arctan', '∂arcsec', '∂arccsc', '∂arccot',
+           '∂cosh', '∂sinh', '∂tanh', '∂sech', '∂csch', '∂coth',
+           '∂arccosh', '∂arcsinh', '∂arctanh', '∂arcsech', '∂arccsch', '∂arccoth',
+           '∫sin', '∫cos', '∫tan', '∫sec', '∫csc', '∫cot',
+           '∫arcsin', '∫arccos', '∫arctan', '∫arcsec', '∫arccsc', '∫arccot',
+           '∫cosh', '∫sinh', '∫tanh', '∫sech', '∫csch', '∫coth',
+           '∫arccosh', '∫arcsinh', '∫arctanh', '∫arcsech', '∫arccsch', '∫arccoth',
+           'cis', 'exp', 'ln', 'sgn', 'φ', 'π', 'μ', 'Γ', 'λ', 'ω', 'Ω']
 
 # RIP ℚ
 
@@ -298,7 +409,20 @@ LOOP = re.compile(r'''
 	$
 	''', re.VERBOSE)
 
-REGEXES = [PREDICATE, OPERATOR, STREAM, NILAD, LOOP]
+FUNCTION = re.compile(r'''
+    ^
+    (>>\ )
+    (
+        {}
+    )
+    (
+        \((?:\d+|[LR])\)
+    )
+    $
+    '''.format('|'.join(FUNCS)), re.VERBOSE)
+
+
+REGEXES = [PREDICATE, FUNCTION, OPERATOR, STREAM, NILAD, LOOP]
 CONST_STDIN = sys.stdin.read()
 
 INFIX_ATOMS = {
@@ -346,7 +470,7 @@ INFIX_ATOMS = {
     'ᵗ':lambda a, b: a[b:],
     '∓':lambda a, b: [a-b, a+b],
     '∕':lambda a, b: int(a / b),
-    '∠':lambda a, b: [math.sin, math.cos, math.tan, math.asin, math.acos, math.atan][b%6](a),
+    '∠':lambda a, b: math.atan2(a, b),
     '≮':lambda a, b: not(a < b),
     '≯':lambda a, b: not(a > b),
     '≰':lambda a, b: not(a <= b),
@@ -356,7 +480,6 @@ INFIX_ATOMS = {
     '⋇':lambda a, b: [a * b, a // b],
     '⊼':lambda a, b: not(a and b),
     '⊽':lambda a, b: not(a or b),
-    '∢':lambda a, b: [math.sinh, math.cosh, math.tanh, math.asinh, math.acosh, math.atanh][b%6](a),
     '⊿':lambda a, b: math.hypot(a, b),
     'j':lambda a, b: complex(a, b),
     '≪':lambda a, b: a << b,
@@ -376,7 +499,7 @@ INFIX_ATOMS = {
 
 PREFIX_ATOMS = {
 
-    '∑':lambda a: sum(a, type(list(a)[0])()),
+    '∑':lambda a: sum(a, a[0]),
     '∏':lambda a: product(a),
     '#':lambda a: len(a),
     '√':lambda a: math.sqrt(a),
@@ -408,6 +531,7 @@ POSTFIX_ATOMS = {
     '°':lambda a: math.degrees(a),
     'ᴿ':lambda a: math.radians(a),
     '₁':lambda a: a.unit,
+    'ᶜ':lambda a: Radian(math.radians(a)),
 
 }
 
@@ -462,6 +586,64 @@ NILAD_ATOMS = {
     'ℝ':InfSet('ℝ', lambda a: isinstance(a, (float, int))),
      U :InfSet(U, lambda a: isinstance(a, (bool, complex, float, int))),
     'ℤ':InfSet('ℤ', lambda a: isinstance(a, int)),
+
+}
+
+FUNCTIONS = {
+
+    'cos':lambda a: Radian(math.cos(a)).easy(),
+    'sin':lambda a: Radian(math.sin(a)).easy(),
+    'tan':lambda a: Radian(math.tan(a)).easy(),
+    'sec':lambda a: Radian(math.sec(a)).easy(),
+    'csc':lambda a: Radian(math.csc(a)).easy(),
+    'cot':lambda a: Radian(math.cot(a)).easy(),
+    
+    'arccos':lambda a: Radian(math.acos(a)).easy(),
+    'arcsin':lambda a: Radian(math.asin(a)).easy(),
+    'arctan':lambda a: Radian(math.atan(a)).easy(),
+    'arcsec':lambda a: Radian(math.asec(a)).easy(),
+    'arccsc':lambda a: Radian(math.acsc(a)).easy(),
+    'arccot':lambda a: Radian(math.acot(a)).easy(),
+
+    'cosh':math.cosh,
+    'sinh':math.sinh,
+    'tanh':math.tanh,
+    'sech':math.sech,
+    'csch':math.csch,
+    'coth':math.coth,
+
+    'arcosh':math.acosh,
+    'arsinh':math.asinh,
+    'artanh':math.atanh,
+    'arsech':math.asech,
+    'arcsch':math.acsch,
+    'arcoth':math.acoth,
+
+    '∂sin':lambda a: Radian(math.cos(a)).easy(),
+    '∂cos':lambda a: Radian(-math.sin(a)).easy(),
+    '∂tan':lambda a: Radian(math.sec(a) ** 2).easy(),
+    '∂sec':lambda a: Radian(math.tan(a) / math.cos(a)).easy(),
+    '∂csc':lambda a: Radian(-math.csc(a) * math.cot(a)).easy(),
+    '∂cot':lambda a: Radian(-math.csc(a) ** 2).easy(),
+
+    '∂cosh':math.sinh,
+    '∂sinh':lambda a: -math.sinh(a),
+    '∂tanh':lambda a: math.sech(a) ** 2,
+    '∂sech':lambda a: math.tanh(a) / math.cosh(a),
+    '∂csch':lambda a: -math.csch(a) * math.coth(a),
+    '∂coth':lambda a: -math.csch(a) ** 2,
+
+    'cis':lambda a: math.cos(a) + 1j * math.sin(a),
+    'exp':math.exp,
+    'ln':math.log,
+    'sgn':lambda a: math.copysign(1, a),
+    'φ':lambda a: sum(map(lambda k: math.gcd(a, k) == 1, range(1, a+1))),
+    'π':lambda a: sum(map(lambda k: prime(k), range(1, a+1))),
+    'μ':lambda a: (Ω(a) == ω(a)) * λ(a),
+    'λ':lambda a: λ(a),
+    'Ω':lambda a: Ω(a),
+    'ω':lambda a: ω(a),
+    'Γ':math.gamma,
 
 }
 
@@ -601,6 +783,14 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
 
             target = getvalue(line[1])
             return atom(target)
+
+    if FUNCTION.search(joined):
+        line = line[1:]
+        func, target = line
+        _, target, _ = target
+        func = FUNCTIONS[func]
+        target = getvalue(target)
+        return func(target)
         
     if STREAM.search(joined):
         if line[1] == 'Output ':
@@ -750,6 +940,38 @@ def powerset(s):
         result.append([s[j] for j in range(x) if (i & (1 << j))])
     return result
 
+def terms(value):
+    if isinstance(value, int) or value.is_integer():
+        return (int(value), 0)
+
+    possible = (π / value, value / π, value * π)
+    for selec, poss in enumerate(possible):
+        poss = round(poss, 10)
+        
+        if round(abs(poss), 10) == round(π, 10):
+            ratio = math.copysign(1, poss).as_integer_ratio()[::-1]
+            
+        elif poss == round(poss, 3):
+            ratio = poss.as_integer_ratio()
+            
+        else:
+            continue
+        
+        break
+    
+    else:
+        ratio = (1 / value / π).as_integer_ratio()
+        selec = 3
+
+    action = [
+        lambda a: a[::-1],
+        lambda a: a,
+        lambda a: (a[0], π*a[1]),
+        lambda a: (a[1], π*a[0]),
+    ][selec]
+
+    return action(ratio)
+
 def tobase(value, base):
     digits = []
     while value:
@@ -766,8 +988,11 @@ def tokenise(regex, string):
 def tokenizer(code, stdin, debug = False):
 
     for line in stdin.split('\n'):
-        try: code = code.replace('> Input\n', '> {}\n'.format(eval(line)), 1)
-        except: code = code.replace('> Input\n', '> "{}"\n'.format(line), 1)
+        if line:
+            try: code = code.replace('> Input\n', '> {}\n'.format(eval(line)), 1)
+            except: code = code.replace('> Input\n', '> "{}"\n'.format(line), 1)
+        else:
+            code = code.replace('> Input\n', '> 0\n', 1)
 
     code = code.split('\n')
     final = []
@@ -808,11 +1033,42 @@ def tryeval(value, stdin=True):
     except:
         return value
 
+def Ω(x):
+    total = 0
+    p = 2
+    while x > 1:
+        if x % p == 0:
+            total += 1
+            x //= p
+            p = 2
+        else:
+            p += 1
+            while not prime(p):
+                p += 1
+    return total
+
+def λ(x):
+    return (-1) ** Ω(x)
+
+def ω(x):
+    if x < 2:
+        return 0
+    
+    p = 2
+    total = 0
+    while p <= x:
+        if x % p == 0:
+            total += 1
+        p += 1
+        while not prime(p) and p <= x:
+            p += 1
+    return total
+
 if __name__ == '__main__':
     try:
         program = sys.argv[1]
     except IndexError:
-        sys.exit(0)
+        sys.exit(1)
 
     flags = ['--tokens', '-t', '--Tokens', '-T', '--parser', '-p']
 
