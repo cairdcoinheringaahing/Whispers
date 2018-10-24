@@ -212,10 +212,10 @@ class Radian(float):
 
 PRED    = B + 'ℂℕℙℚℝ' + U + 'ℤ¬⊤⊥'
 INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ∓∕∠≮≯≰≱∧∨⋇⊼⊽∢⊿j≪≫⊈⊉½→∥∦⟂⊾∡√'
-PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎R₁"
-POSTFIX = '!’#²³ᵀᴺ°ᴿ₁'
-OPEN    = '|(\[⌈⌊{"'
-CLOSE   = '|)\]⌉⌋}"'
+PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎R"
+POSTFIX = '!’#²³ᵀᴺ°ᴿ₁ᶜ'
+OPEN    = '|(\[⌈⌊{"‖'
+CLOSE   = '|)\]⌉⌋}"‖'
 NILADS  = '½∅' + B + 'ℂℕℙℝ' + U + 'ℤ'
 FUNCS   = ['sin', 'cos', 'tan', 'sec', 'csc', 'cot',
            'arcsin', 'arccos', 'arctan', 'arcsec', 'arccsc', 'arccot',
