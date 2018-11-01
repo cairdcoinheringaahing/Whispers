@@ -428,7 +428,15 @@ FUNCTION = re.compile(r'''
     '''.format('|'.join(FUNCS)), re.VERBOSE)
 
 
-REGEXES = [PREDICATE, FUNCTION, OPERATOR, STREAM, NILAD, LOOP]
+REGEXES = {
+    'Predicate': PREDICATE,
+    'Function': FUNCTION,
+    'Operator': OPERATOR,
+    'Stream': STREAM,
+    'Nilad': NILAD,
+    'Loop': LOOP
+}
+
 CONST_STDIN = sys.stdin.read()
 
 INFIX_ATOMS = {
@@ -1043,8 +1051,8 @@ def tokenizer(code, stdin, debug = False):
     final = []
 
     for line in code:
-        for regex in REGEXES:
-            if debug: print(repr(line), regex.search(line))
+        for name, regex in REGEXES.items():
+            if debug: print(repr(line), '{}: {}'.format(name, regex.search(line)))
             if regex.search(line):
                 final.append(tokenise(regex, line))
         if debug: print()
