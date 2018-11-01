@@ -401,7 +401,7 @@ LOOP = re.compile(r'''
 	|
 		Then
 	|
-		Select
+		Select[∧∨∘]
 	|
 		[
 			∑
@@ -500,6 +500,8 @@ INFIX_ATOMS = {
     '⊾':lambda a, b: not a.perpendicular(b) if isinstance(a, Vector) else (math.gcd(a, b) != 1),
     '∡':lambda a, b: a.angle(b),
     '√':lambda a, b: a ** (1 / b),
+    '∧':lambda a, b: a and b,
+    '∨':lambda a, b: a or b,
 
 }
 
@@ -864,22 +866,32 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
 
             return final
 
-        if loop == 'Select':
-            call, *iters = targets
-            result, final = [], []
-            for tgt in iters:
-                res = getvalue(tgt)
-                result.append(res if hasattr(res, '__iter__') else [res])
-                
-            result = transpose(result)
+        if loop in ['Select∧', 'Select∨', 'Select∘']:
+            mod = '∧∨∘'.index(loop[-1])
+            *calls, array = targets
+            array = getvalue(array)
+            final = []
 
-            for args in result:
-                while len(args) != 2:
-                    args.append(args[-1])
-                    
-                ret = execute(tokens, index = int(call), left = args[0], right = args[1])
-                if ret:
-                    final.append(args[0])
+            for elem in array:
+                if -1 < mod < 2:
+                    ret = []
+                    for call in calls:
+                        ret.append(execute(tokens, index = int(call), left = elem, right = elem))
+
+                    if mod == 0:
+                        func = all
+                    if mod == 1:
+                        func = any
+
+                    if func(ret):
+                        final.append(elem)
+
+                else:
+                    ret = execute(tokens, index = int(calls[0]), left = elem, right = elem)
+                    for call in calls[1:]:
+                        ret = execute(tokens, index = int(call), left = ret, right = ret)
+                    if ret:
+                        final.append(elem)
 
             if all(type(a) == str for a in final):
                 return ''.join(final)
