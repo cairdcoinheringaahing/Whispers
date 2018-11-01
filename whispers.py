@@ -1055,7 +1055,7 @@ def tokenizer(code, stdin, debug = False):
             if debug: print(repr(line), '{}: {}'.format(name, regex.search(line)), file = sys.stderr)
             if regex.search(line):
                 final.append(tokenise(regex, line))
-        if debug: print()
+        if debug: print(file = sys.stderr)
     return final
 
 def transpose(array):
