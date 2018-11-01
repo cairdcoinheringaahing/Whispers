@@ -1,3 +1,4 @@
+import cmath
 import functools
 import itertools
 import math
@@ -110,6 +111,9 @@ class InfSet:
     def __repr__(self):
         return 'x ∈ {}'.format(self.bold)
 
+    def __str__(self):
+        return self.bold
+
     def __contains__(self, other):
         return self.cond(other)
 
@@ -212,10 +216,10 @@ class Radian(float):
 
 PRED    = B + 'ℂℕℙℚℝ' + U + 'ℤ¬⊤⊥'
 INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ∓∕∠≮≯≰≱∧∨⋇⊼⊽∢⊿j≪≫⊈⊉½→∥∦⟂⊾∡√'
-PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎R"
-POSTFIX = '!’#²³ᵀᴺ°ᴿ₁ᶜ'
-OPEN    = '|(\[⌈⌊{"‖'
-CLOSE   = '|)\]⌉⌋}"‖'
+PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎R₁"
+POSTFIX = '!’#²³ᵀᴺ°ᴿ₁'
+OPEN    = '|(\[⌈⌊{"'
+CLOSE   = '|)\]⌉⌋}"'
 NILADS  = '½∅' + B + 'ℂℕℙℝ' + U + 'ℤ'
 FUNCS   = ['sin', 'cos', 'tan', 'sec', 'csc', 'cot',
            'arcsin', 'arccos', 'arctan', 'arcsec', 'arccsc', 'arccot',
@@ -229,7 +233,7 @@ FUNCS   = ['sin', 'cos', 'tan', 'sec', 'csc', 'cot',
            '∫arcsin', '∫arccos', '∫arctan', '∫arcsec', '∫arccsc', '∫arccot',
            '∫cosh', '∫sinh', '∫tanh', '∫sech', '∫csch', '∫coth',
            '∫arccosh', '∫arcsinh', '∫arctanh', '∫arcsech', '∫arccsch', '∫arccoth',
-           'cis', 'exp', 'ln', 'sgn', 'φ', 'π', 'μ', 'Γ', 'λ', 'ω', 'Ω']
+           'cis', 'exp', 'ln', 'sgn', 'φ', 'π', 'μ', 'Γ', 'λ', 'ω', 'Ω', 'arg']
 
 # RIP ℚ
 
@@ -396,6 +400,8 @@ LOOP = re.compile(r'''
 		DoWhile
 	|
 		Then
+	|
+		Select
 	|
 		[
 			∑
@@ -644,6 +650,7 @@ FUNCTIONS = {
     'Ω':lambda a: Ω(a),
     'ω':lambda a: ω(a),
     'Γ':math.gamma,
+    'arg':lambda a: Radian(cmath.phase(a)).easy(),
 
 }
 
@@ -857,6 +864,28 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
 
             return final
 
+        if loop == 'Select':
+            call, *iters = targets
+            result, final = [], []
+            for tgt in iters:
+                res = getvalue(tgt)
+                result.append(res if hasattr(res, '__iter__') else [res])
+                
+            result = transpose(result)
+
+            for args in result:
+                while len(args) != 2:
+                    args.append(args[-1])
+                    
+                ret = execute(tokens, index = int(call), left = args[0], right = args[1])
+                if ret:
+                    final.append(args[0])
+
+            if all(type(a) == str for a in final):
+                return ''.join(final)
+
+            return final
+                
         if loop in '∑∏…':
            start, end, *f = targets
            start = getvalue(start)
@@ -923,6 +952,10 @@ def output(value, file = 1):
         if type(out) == frozenset:
             out = set(out)
         print(out, '}', sep = '', file = file)
+
+    elif isinstance(value, InfSet):
+        print(repr(value), file = file)
+        
     else:
         print(value, file = file)
 
@@ -989,7 +1022,7 @@ def tokenizer(code, stdin, debug = False):
 
     for line in stdin.split('\n'):
         if line:
-            try: code = code.replace('> Input\n', '> {}\n'.format(eval(line)), 1)
+            try: code = code.replace('> Input\n', '> {}\n'.format(tryeval(line)), 1)
             except: code = code.replace('> Input\n', '> "{}"\n'.format(line), 1)
         else:
             code = code.replace('> Input\n', '> 0\n', 1)
@@ -1027,6 +1060,9 @@ def tryeval(value, stdin=True):
             axis = list(map(lambda a: int(a[0]), re.findall(r'(-?[1-9]\d*|0)(\.\d+)?', value)))
             start, end = re.findall(r'[A-Z]', value)
             return Vector(start, end, *axis)
+
+        if re.search(r'^(-?([1-9]\d*|0)(\.\d+)?)[+-](([1-9]\d*|0)(\.\d+)?)i$', value):
+            return eval(value.replace('i', 'j'))
 
     try:
         return NILAD_ATOMS[value]
