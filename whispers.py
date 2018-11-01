@@ -1052,7 +1052,7 @@ def tokenizer(code, stdin, debug = False):
 
     for line in code:
         for name, regex in REGEXES.items():
-            if debug: print(repr(line), '{}: {}'.format(name, regex.search(line)))
+            if debug: print(repr(line), '{}: {}'.format(name, regex.search(line)), file = sys.stderr)
             if regex.search(line):
                 final.append(tokenise(regex, line))
         if debug: print()
@@ -1136,19 +1136,19 @@ if __name__ == '__main__':
         pass
 
     if flag in ['--tokens', '-t']:
-        print(tokenizer(program, CONST_STDIN))
-    elif flag in ['--Tokens', '-T']:
-        print(*tokenizer(program, CONST_STDIN), sep = '\n')
-    elif flag in ['--parser', '-p']:
+        print(tokenizer(program, CONST_STDIN), file = sys.stderr)
+    if flag in ['--Tokens', '-T']:
+        print(*tokenizer(program, CONST_STDIN), sep = '\n', file = sys.stderr)
+    if flag in ['--parser', '-p']:
         tokenizer(program, CONST_STDIN, debug = True)
-    else:
-        try:
-            execute(tokenizer(program, CONST_STDIN))
-            if re.search(r'^>>> ', program, re.MULTILINE) and not re.search(r'^>> Output', program, re.MULTILINE):
-                output_file = sys.stdout
-            else:
-                output_file = sys.stderr
-                
-            print('⊤', file = output_file)
-        except AssertionError:
-            print('⊥')
+        
+    try:
+        execute(tokenizer(program, CONST_STDIN))
+        if re.search(r'^>>> ', program, re.MULTILINE) and not re.search(r'^>> Output', program, re.MULTILINE):
+            output_file = sys.stdout
+        else:
+            output_file = sys.stderr
+            
+        print('⊤', file = output_file)
+    except AssertionError:
+        print('⊥')
