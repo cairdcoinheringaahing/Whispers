@@ -104,7 +104,7 @@ A Whispers program only runs one line by default: the final line. All other acti
 
   We can do the first step: output something. However, in order to fully run this line, we need the result of line *17*: `>> 15ⁿ16`
   
-  - Here we encounter an **infix operator line**. The operator is `ⁿ` i.e the [index command](https://github.com/cairdcoinheringaahing/Whispers/blob/master/whispers.py#L480) and the two arguments are lines *15* and *16*, so we come to our first "fork" in execution. The Whispers interpreter would run *15*, then *16*, but for this, we'll do it the other way round for simplicity
+  - Here we encounter an **infix operator line**. The operator is `ⁿ` i.e the [index command](https://github.com/cairdcoinheringaahing/Whispers/blob/master/whispers.py#L481) and the two arguments are lines *15* and *16*, so we come to our first "fork" in execution. The Whispers interpreter would run *15*, then *16*, but for this, we'll do it the other way round for simplicity
     - Line *16* is a lot simplier than line *15*: `> 0`
     
       This is a **nilad line** yielding the integer **0**, so the right argument to the index command is **0** i.e. the first element of the array found in line *15*. As line *16* didn't take us to the rest of the program, we know that line *15* will
@@ -122,7 +122,29 @@ A Whispers program only runs one line by default: the final line. All other acti
       - We know now one argument and the operator: the index command. With **-1** as a right argument, we know this is a function to retrieve the final element of an array.
     - We now know what line *9* does (retrieve the final element of an array), so we can drop back to line *15*, where we now need the result of line *14*
       - Line *14* is `>> 13ᴺ`, a **postfix operator line**, we takes the array found on line *13* and sorts it
-        - Line *13* is a complicated one: `>> Each 12 11 3`. This has three separate parts to it
+        - Line *13* is a complicated one, a **dependent command line**: `>> Each 12 11 3`. This has three separate parts to it: lines *3*, *11* and *12*. As this is an `Each` statement, we know that line *12* is a function, so is likely to be the simpliest of the three:
+          - Line *12* is indeed simple: `>> L‖R`. An **infix functional operator line**, we see that the operator is `‖`, the [concatenate command](https://github.com/cairdcoinheringaahing/Whispers/blob/master/whispers.py#L482), so this simply concatenates the arguments into a pair
+        - We then return to line *13* and have to find the values on lines *3* and *11*. The order chosen doesn't really matter, so we'll go numerically i.e. line *3*, then line *11*
+          - Line *3* is another **infix operator line**: `>> 1…2`, this time using the [range command](https://github.com/cairdcoinheringaahing/Whispers/blob/master/whispers.py#L478). The arguments can be cound on lines *1* and *2*
+            - Line *1* is a **nilad line** that takes in a line of input: `> Input`
+            - Line *2* is exactly the same, returning the next line of input
+          - We now know that line *3* is the range from one input to the next
+        - Finally, we go check line *11* to find the final argument needed on line *13*:
+          - Line *11* is another **dependent command line**: `>> Each 9 8`, which uses line *9* as its function and takes line *8* as an argument. We already know what line *9* is from before (a function to retrieve the final element in an array), so we go to line *8*
+            - Line *8* (`>> Each 7 6`) continues the chain of **dependent command lines**, which also tells us to visit line *7* before line *6*:
+              - Line *7* is, as expected, a function: `>> Select∧ 5 L`, but not *quite* as expected. Line *7* is a **dependent functional command line**, where we are selecting elements from the argument passed, depending on the result of line *5*:
+                - Line *5* is a much nicer, simpler function (`>> L’`) that simply checks the primality of its argument. This lets us identify line *7* as a function that filters composite numbers from an array
+              - Line *6* is an array, `>> Each 4 3`, yet another **dependent command line**. Luckily, the program starts to converge, and we already know the array being iterated over: line *3* i.e. the range between inputs.
+                - Line *4* is a simple function: `>> ∤L` which generates the divisors of the argument. Therefore line *6* is an array of the arrays of divisors of each integer in the input range. We can know start walking back down the chain with full definitions of each line
+              - This, combined with line *7*, lets us say that line *8* is an array of the prime divisors of each integer in the input range.
+            - Line *11* would then return the final element of the prime divisor list i.e. the largest prime divisor, of each integer
+          - We know now the three arguments on line *13*: the largest prime divisor of each integer in the input range, the input range, and a concatenation function. We can say line *13* then concatenates each integer with its largest prime divisor, with the divisor first
+        - Line *14* then sorts the array, dependant on the first element of each subarray, to yield a permutation of the input list, sorted by largest prime divisor
+      - We then go the line *15*, which returns the last element of each subarray in order to form the input list, sorted by largest prime divisor.
+    - Line *17* then takes the first element of this array, i.e. the number with the smallest largest prime divisor
+  - Finally, line *18* outputs it
+- We then terminate execution
+        
    
    
    
