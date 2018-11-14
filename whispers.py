@@ -308,7 +308,7 @@ NILAD = re.compile(r'''
 		)
 	|
 		(
-			(-?[1-9]\d*|0)\.\d+
+			-?([1-9]\d*|0)\.\d+
 		|
 			(-?[1-9]\d*|0)
 		|
@@ -320,11 +320,11 @@ NILAD = re.compile(r'''
 			(
 				(
 					
-					(-?[1-9]\d*|0)
+					-?([1-9]\d*|0)
 						(\.\d+)?
 					,\ ?
 				)*
-				(-?[1-9]\d*|0)
+				-?([1-9]\d*|0)
 					(\.\d+)?
 			)*
 			[}\]]
@@ -515,7 +515,7 @@ INFIX_ATOMS = {
 
 PREFIX_ATOMS = {
 
-    '∑':lambda a: sum(a, type(list(a)[0])()),
+    '∑':lambda a: sum(a, a[0]),
     '∏':lambda a: product(a),
     '#':lambda a: len(a),
     '√':lambda a: math.sqrt(a),
@@ -1055,7 +1055,7 @@ def tokenizer(code, stdin, debug = False):
             if debug: print(repr(line), '{}: {}'.format(name, regex.search(line)), file = sys.stderr)
             if regex.search(line):
                 final.append(tokenise(regex, line))
-        if debug: print(file = sys.stderr)
+        if debug: print()
     return final
 
 def transpose(array):
