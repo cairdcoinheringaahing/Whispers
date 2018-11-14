@@ -1,4 +1,4 @@
-import cmath
+=import cmath
 import functools
 import itertools
 import math
@@ -515,7 +515,7 @@ INFIX_ATOMS = {
 
 PREFIX_ATOMS = {
 
-    '∑':lambda a: sum(a, a[0]),
+    '∑':lambda a: sum(a, type(list(a)[0])()),
     '∏':lambda a: product(a),
     '#':lambda a: len(a),
     '√':lambda a: math.sqrt(a),
