@@ -215,7 +215,7 @@ class Radian(float):
     __str__ = __repr__
 
 PRED    = B + 'ℂℕℙℚℝ' + U + 'ℤ¬⊤⊥'
-INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ∓∕∠≮≯≰≱∧∨⋇⊼⊽∢⊿j≪≫⊈⊉½→∥∦⟂⊾∡√'
+INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ∓∕∠≮≯≰≱∧∨⋇⊼⊽∢⊿j≪≫⊈⊉½→∥∦⟂⊾∡√CP'
 PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎R₁"
 POSTFIX = '!’#²³ᵀᴺ°ᴿ₁'
 OPEN    = '|(\[⌈⌊{"'
@@ -510,6 +510,8 @@ INFIX_ATOMS = {
     '√':lambda a, b: a ** (1 / b),
     '∧':lambda a, b: a and b,
     '∨':lambda a, b: a or b,
+    'C':lambda a, b: math.factorial(a) / (math.factorial(a - b) * math.factorial(b)),
+    'P':lambda a, b: math.factorial(a) / math.factorial(a - b),
 
 }
 
