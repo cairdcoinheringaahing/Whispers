@@ -921,7 +921,7 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
            for n in range(start, end):
                sub = 0
                for fn in f:
-                   sub += execute(tokens, fn, left = n, right = sub)
+                   sub += execute(tokens, int(fn), left = n, right = sub)
 
                if loop == '∑':
                    total += sub
