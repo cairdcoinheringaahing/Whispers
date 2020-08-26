@@ -50,6 +50,15 @@ def flatten(array):
             flat.append(elem)
     return flat
 
+def isjagged(array):
+    lengths = []
+    for value in array:
+        if not hasattr(value, '__iter__'):
+            return True
+        lengths.append(len(value))
+        
+    return not all(elem == lengths[0] for elem in lengths)
+
 class Vector:
     def __init__(self, start, *components):
         if isinstance(components[0], str):
@@ -130,9 +139,27 @@ class Coords:
         return '{}({})'.format(self.name, ', '.join(map(str, self.axis)))
 
 class InfSet:
-    def __init__(self, bold, condition):
+    def __init__(self, bold, condition, countable = False, k = None):
         self.bold = bold
         self.cond = condition
+        self.countable = countable
+        
+        if countable:
+            self.k = k
+
+            def gen():
+                while True:
+                    if condition(self.k):
+                        yield self.k
+                    self.k += 1
+
+        else:
+
+            def gen():
+                while True:
+                    yield None
+                    
+        self.gen = gen
 
     def __repr__(self):
         return 'x ∈ {}'.format(self.bold)
@@ -148,6 +175,13 @@ class InfSet:
 
     def __mul__(self, other):
         return InfSet('{}∩{}'.format(self.bold, other.bold), lambda a: self.cond(a) and other.cond(a))
+
+    def __iter__(self):
+        while True:
+            yield next(self.gen())
+
+    def __next__(self):
+        return next(self.gen())
 
     __or__   = __add__
     __ror__  = __add__
@@ -246,10 +280,44 @@ class Matrix:
         self.next_column = 1
         
         if second is None:
-            self.value = arg
-            self.rows = len(arg)
-            self.columns = len(arg[0]) if arg else 0
-            self.dims = [self.rows, self.columns]
+            if isinstance(arg, Matrix):
+                arg = arg.value
+                
+            if not hasattr(arg, '__iter__'):
+                self.value = [[arg]]
+                self.rows = self.columns = 1
+                self.dims = [1, 1]
+                
+            else:
+                arr = arg.copy()
+                arg = []
+                for a in arr:
+                    if not hasattr(a, '__iter__'):
+                        a = [a]
+                    arg.append(a)
+                    
+                if isjagged(arg):
+                    self.rows = len(arg)
+                    self.columns = max(map(len, arg))
+                    self.value = []
+                    
+                    for row in arg:
+                        self.value.append([])
+                        for index in range(self.columns):
+                            if index < len(row):
+                                self.value[-1].append(row[index])
+                            else:
+                                self.value[-1].append(0)
+                            
+                else:
+                    self.rows = len(arg)
+                    self.columns = len(arg[0])
+                    mat = Matrix(self.rows, self.columns)
+                    for value in flatten(arg):
+                        mat.add_next(value)
+                    self.value = mat.value.copy()
+                                
+                self.dims = [self.rows, self.columns]
             
         else:
             rows = arg
@@ -343,7 +411,7 @@ class Matrix:
         
         new = Matrix(self.rows, other.columns, zero = True)
         left = self.value.copy()
-        right = other.transpose()
+        right = other.transpose().value.copy()
 
         while left:
             row = left.pop(0)
@@ -456,3 +524,101 @@ class Matrix:
     __add__ = add
     __sub__ = sub
     __pow__ = pow_
+
+    __rmul__ = mul
+    __radd__ = add
+    __rsub__ = sub
+
+class InfSeq:
+    def __init__(self, infinite_function, ordered = True, uniques = None, repeated = False):
+        self.inf = infinite_function
+        self.order = ordered
+        self.gen = self.inf()
+        self.uniques = uniques
+        self.repeat = repeated
+
+    def __contains__(self, obj):
+        if self.uniques:
+            return obj in self.uniques
+        if self.repeat:
+            return obj in self.take(self.repeat)
+        
+        for elem in self.inf():
+
+            if elem == obj:
+                return True
+            
+            if elem > obj and self.order == 1:
+                return False
+            elif elem < obj and self.order == -1:
+                return False
+
+    def __iter__(self):
+        return self.inf()
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            if index.start is None:
+                return self.take(index.stop)
+
+            if index.step is None:
+                ret = self.take(index.stop)
+                for _ in range(index.start): ret.pop(0)
+                return ret
+
+            return self.take(index.stop)[index.start : index.stop : index.step]
+            
+        return self.take(index + 1)[-1]
+
+    def __next__(self):
+        return next(self.gen)
+
+    def __repr__(self):
+        return '[{}, {}, {}...]'.format(*self.take(3))
+
+    __str__ = __repr__
+
+    @property
+    def elements(self):
+        for elem in self.inf():
+            print(elem, end = ' ')
+        return ''
+
+    def index(self, elem):
+        index = 0
+        if elem not in self:
+            return -1
+
+        for gen_elem in self.inf():
+            if gen_elem == elem:
+                return index
+            index += 1
+
+    def take(self, num):
+        taken = []
+        while len(taken) < num:
+            taken.append(next(self.gen))
+        self.gen = self.inf()
+        return taken
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,11 +1,15 @@
 import functools
+import math
+import operator
 import unicodedata
 
 letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
+# ⁰¹²³⁴⁵⁶⁷⁸⁹
+
 BINARY = [
 
-    '+', '⋅', '÷', '-', '*', '%', '/', '⍟',
+    '+', '⋅', '÷', '-', '*', '%', '/', '⍟', '=',
     # '∘',
 
 ]
@@ -15,8 +19,9 @@ FUNCS = [
     'sin', 'cos', 'tan', 'csc', 'sec', 'cot',
     'sinh', 'cosh', 'tanh', 'csch', 'sech', 'coth',
     'arcsin', 'arccos', 'arctan', 'arccsc', 'arcsec', 'arccot',
-    'arcsinh', 'arccosh', 'arctanh', 'arccsch', 'arcsech', 'arccoth',
-    'exp', 'ln', '∂', '∫', 'Γ', 'ℑ', 'ℜ',
+    'arsinh', 'arcosh', 'artanh', 'arcsch', 'arsech', 'arcoth',
+    'exp', 'ln',
+    '∂', 'Γ', 'ℑ', 'ℜ',
 
 ]
 
@@ -51,6 +56,23 @@ PRIORITY = {
     '+': 1,
     '-': 1,
 
+    '∂': 0,
+    '=': 0,
+
+}
+
+BINARY_OPS = {
+
+    '+': operator.add,
+    '⋅': operator.mul,
+    '÷': operator.truediv,
+    '-': operator.sub,
+    '*': operator.pow,
+    '%': operator.mod,
+    '/': operator.floordiv,
+    '⍟': math.log,
+    '=': operator.eq,
+
 }
 
 NUMBER = (int, float, complex)
@@ -62,9 +84,8 @@ class BinaryOp:
         self.op = op
         self.right = right
         self.pri = pri
-        
-    def command(self, dictionary):
-        self.COMMANDS = dictionary
+
+        self.operand = None
 
     def copy(self):
         return BinaryOp(self.left, self.op, self.right, self.pri)
@@ -74,25 +95,12 @@ class BinaryOp:
         return (self.left is None) + (self.right is None)
 
     def __eq__(self, other):
-        return hasattr(other, 'op') and self.op == other.op
-
-    def __call__(self, argument):
-        try: self.COMMANDS
-        except: assert False
-            
-        cmd = self.COMMANDS[2][self.op]
-        if self.op == '∘':
-            ret = cmd(self.left, self.right)(argument)
-        else:
-            left = self.left(argument)
-            right = self.right(argument)
-            ret = cmd(left, right)
-
-        if type(ret) == float and ret.is_integer():
-            return int(ret)
-        if type(ret) == complex and ret.imag == 0j:
-            return ret.real
-        return ret
+        return (
+            isinstance(other, BinaryOp) and \
+            self.op == other.op         and \
+            self.left == other.left     and \
+            self.right == other.right
+        )
 
     def __repr1__(self):
         if self.left is None:
@@ -118,8 +126,7 @@ class UnaryOp:
         self.pos = pos
         self.pri = pri
 
-    def command(self, dictionary):
-        self.COMMANDS = dictionary
+        self.left = self.right = None
 
     def copy(self):
         return UnaryOp(self.pos, self.op, self.operand, self.pri)
@@ -131,21 +138,8 @@ class UnaryOp:
     def __eq__(self, other):
         if not isinstance(other, UnaryOp):
             return False
-        return (self.pos, self.op, self.operand, self.pri) == (other.pos, other.op, other.operand, other.pri)
-        
-    def __call__(self, argument):
-        try: self.COMMANDS
-        except: assert False
-        
-        cmd = self.COMMANDS[1][self.op]
-        argument = self.operand(argument)
-        ret = cmd(argument)
 
-        if type(ret) == float and ret.is_integer():
-            return int(ret)
-        if type(ret) == complex and ret.imag == 0j:
-            return ret.real
-        return ret
+        return (self.pos, self.op, self.operand) == (other.pos, other.op, other.operand)
 
     def __repr1__(self):
         oper = self.operand
@@ -188,11 +182,6 @@ class Variable:
             return (self.value == other.value) and (other.value is not None)
 
         return (other.value is None)
-
-    def __call__(self, value = None):
-        if self.value is None:
-            return value
-        return self.value
 
     def __repr1__(self):
         if self.value is None:
@@ -237,23 +226,6 @@ class Constant:
 
     __repr__ = __repr2__
 
-class Function:
-
-    def __init__(self, name, body = None):
-        self.name = name
-        self.body = body
-        self.arity = -1
-        self.op = None
-        self.pri = 6
-
-    def __call__(self, argument):
-        if self.body is None:
-            return argument
-        return self.body(argument)
-
-    def __repr__(self):
-        return 'Function<{}>'.format(self.name)
-
 def strip(string):
     if string[0] != '(' or string[-1] != ')':
         return string
@@ -294,7 +266,7 @@ def tokeniser(string):
     string = strip(string)
 
     while index < len(string):
-        if string[index] == '-' and False:
+        if string[index] == '-' and index and string[index - 1] not in letters+'0123456789':
             
             if string[index + 1] in '123456789':
                 if curr:
@@ -318,7 +290,7 @@ def tokeniser(string):
                         curr = '-0.'
                         index += 2
                         
-                        while index < len(string) and string[index] in '1234567890':
+                        while index < len(string) and string[index] in '1234567890.' and curr.count('.') < 2:
                             curr += string[index]
                             index += 1
                     else:
@@ -335,13 +307,13 @@ def tokeniser(string):
 
             index -= 1
 
-        elif string[index] in '123456789':
+        elif string[index] in '1234567890.':
             if curr:
                 tokens.append(curr)
 
             curr = ''
             
-            while index < len(string) and string[index] in '1234567890':
+            while index < len(string) and string[index] in '1234567890.' and curr.count('.') < 2:
                 curr += string[index]
                 index += 1
 
@@ -392,8 +364,11 @@ def getpower(string):
     return ''.join(filter(lambda a: a in '⁰¹²³⁴⁵⁶⁷⁸⁹', string))
 
 def normalise(string):
+        if not isinstance(string, str):
+            return string
         if not string:
                 return 1
+            
         total = 0
         for exp, digit in enumerate(map(unicodedata.numeric, string)):
                 total += digit * 10 ** exp
@@ -454,16 +429,28 @@ def reduce(tkns):
         if cmd.pos == 'Prefix':
             cmd.operand = reduce(tkns[order[0] + 1:])
         if cmd.pos == 'Postfix':
-            if isexp(cmd.op):
-                cmd.operand = reduce(tkns[order[0] + 1:])
-            else:
-                cmd.operand = reduce(tkns[:order[0]])
+            cmd.operand = reduce(tkns[:order[0]])
 
     return cmd
+
+def simplify(tree):
+    if isinstance(tree, BinaryOp):
+        if isinstance(tree.left, Constant) and isinstance(tree.right, Constant):
+            f = BINARY_OPS[tree.op]
+            return Constant(f(tree.left.value, tree.right.value))
+        else:
+            tree.left = simplify(tree.left)
+            tree.right = simplify(tree.right)
+
+    if isinstance(tree, UnaryOp):
+        tree.operand = simplify(tree.operand)
+
+    return tree
 
 def parse(string, gettokens = True, red = True):
     if not string:
         return Constant(0)
+    
     original = string
     if gettokens:
         string = tokeniser(string)
@@ -481,10 +468,13 @@ def parse(string, gettokens = True, red = True):
         elif ispower(tkn):
             power = getpower(tkn)
             var = tkn.strip('⁰¹²³⁴⁵⁶⁷⁸⁹')
-            tkn = UnaryOp('Postfix', op = power, operand = Variable(var), pri = 3)
+            tkn = UnaryOp('Postfix', op = power, operand = Variable(var), pri = 4)
 
         elif isexp(tkn):
-            tkn = UnaryOp('Postfix', op = tkn, pri = 3)
+            if ops[-1] == UnaryOp('Prefix', op = '∂', pri = 0):
+                ops[-1].op += tkn
+            else:
+                tkn = UnaryOp('Postfix', op = tkn, pri = 4)
             
         elif tkn in BINARY:
             tkn = BinaryOp(op = tkn, pri = PRIORITY[tkn])
@@ -510,14 +500,8 @@ def parse(string, gettokens = True, red = True):
     if len(ops) == 1:
         return ops[0]
 
-    if isinstance(ops[-1], UnaryOp) and ops[-1].pos == 'Postfix' and ops[-2] == ')':
-        ops = [ops.pop()] + ops
-
-    types = (UnaryOp, BinaryOp, Variable, Constant, Function)
+    types = (UnaryOp, BinaryOp, Variable, Constant)
     ops = list(filter(lambda a: isinstance(a, types), ops))
-
-    if not red:
-        return ops
 
     inserts = []
     for index, pair in enumerate(zip(ops, ops[1:])):
@@ -530,7 +514,10 @@ def parse(string, gettokens = True, red = True):
             tkns.append(BinaryOp(op = '⋅', pri = 3))
         tkns.append(op)
 
-    return reduce(tkns)
+    if not red:
+        return tkns
+
+    return simplify(reduce(tkns))
 
 X = Variable('x')
 
