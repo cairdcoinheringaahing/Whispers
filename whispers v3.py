@@ -29,6 +29,7 @@ import mathparser
 import derivatives
 import integrals
 # import diffeqs
+import simplify
 
 sys.setrecursionlimit(1 << 30)
 
@@ -1842,6 +1843,12 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
             return integrals.main(expr, [a, b])
 
     if EXPR.search(joined):
+        if left is not None or right is not None:
+            expr = mathparser.parse(line[1])
+            expr = simplify.setvar(expr, left, 'L')
+            expr = simplify.setvar(expr, right, 'R')
+            return evaluate(expr)
+        
         return mathparser.parse(line[1])
 
     if SEQ.search(joined):
@@ -2705,7 +2712,3 @@ if __name__ == '__main__':
         print('⊤', file = sys.stderr)
     except AssertionError:
         print('⊥', file = sys.stderr)
-
-
-
-
