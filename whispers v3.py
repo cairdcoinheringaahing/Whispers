@@ -1,6 +1,7 @@
 # Standard imports
 
 import argparse
+import ast
 import cmath
 import enum
 import functools
@@ -23,7 +24,7 @@ import scipy.special
 # module imports
 
 import __types as types
-from __types import Coords, InfSeq, InfSet, Matrix, Radian, Vector
+from __types import Coords, InfSeq, InfSet, Matrix, Quaternion, Radian, Vector
 
 import mathparser
 import derivatives
@@ -94,6 +95,7 @@ SETS = {
     chr(0x1d539): (lambda a: a in (0, 1)),                                  # B
     chr(0x2102) : (lambda a: isinstance(a, complex)),                       # C
     chr(0x1d53c): (lambda a: a % 2 == 0),                                   # E
+    chr(0x210d) : (lambda a: isinstance(a, Quaternion)),                    # H
     chr(0x1d541): (lambda a: isinstance(a, float) and not a.is_integer()),  # J
     chr(0x1d544): (lambda a: isinstance(a, Matrix)),                        # M
     chr(0x2115) : (lambda a: isinstance(a, int) and a > 0),                 # N
@@ -113,17 +115,17 @@ NILADS  = list(
     'CGW'
     'bcehij'
     'ΦΨΩ'
-    'γμπτφ'
+    'αβγμπτφ'
     '⊨⊭'
     '' + ''.join(SETS.keys())
 ) + \
 [
     '1j', '√2', 'ln(2)', '√2ₛ', '1/π', '1/e',
-    'ζ(2)', 'ζ(3)', 'β(2)',
+    'ζ(2)', 'ζ(3)',
     'B⁺[₀-₉]+', 'B⁻[₀-₉]+',
     'C₂', 'C₁₀', 'I₁', 'I₂', 'Nₐ', 'P₂', 'S₃',
     'mₑ',
-    'γ₂', 'δₛ', 'ε₀', 'θₘ'
+    'γ₂', 'δₛ', 'ε₀', 'θₘ',
 ]
 
 SEQS    = [
@@ -501,44 +503,40 @@ NILAD = re.compile(r'''
 	^(>\ )
 	(
 		(
+			
 			(
-				(")
-			|
-				(')
+				["']
 			)
-			(?(5)
-					[^"]
-				|
-					[^']
-			)*
-			(?(5)
-					"
-				|
-					'
-			)
+			.*?
+			\4
 		)
 	|
-		(
-			-?([1-9]\d*|0)\.\d+
-		|
-			(-?[1-9]\d*|0)
-		|
-			\((-?[1-9]\d*|0)[+-]([1-9]\d*|0)j\)
-		)
+		{NUMBER}
 	|
 		(
-			[\[{{]
+			\[
 			(
 				(
 					
-					-?([1-9]\d*|0)
-						(\.\d+)?
+					{NUMBER}
 					,\ ?
 				)*
-				-?([1-9]\d*|0)
-					(\.\d+)?
-			)*
-			[}}\]]
+				{NUMBER}
+			)?
+			\]
+		)
+	|
+		(
+			{{
+			(
+				(
+					
+					{NUMBER}
+					,\ ?
+				)*
+				{NUMBER}
+			)?
+			}}
 		)
 	|
 			
@@ -552,13 +550,11 @@ NILAD = re.compile(r'''
 			(
 				(
 					
-					(-?[1-9]\d*|0)
-						(\.\d+)?
+					{NUMBER}
 					,\ ?
 				)*
-				(-?[1-9]\d*|0)
-					(\.\d+)?
-			)*
+				{NUMBER}
+			)
 			\)
 		)
         |
@@ -568,26 +564,34 @@ NILAD = re.compile(r'''
 			(
 				(
 					
-					(-?[1-9]\d*|0)
-						(\.\d+)?
+					{NUMBER}
 					\ 
 				)*
-				(-?[1-9]\d*|0)
-					(\.\d+)?
-			)*
+				{NUMBER}
+			)
                         \)
-                )
-        |
-                (
-                    [{AEGEAN}]+
                 )
 	)
 	$
-	'''.format(NILADS = 
-            '|'.join(NILADS) \
-            .replace('(', r'\(').replace(')', r'\)'),
-                   AEGEAN = ''.join(map(chr, range(0x10107, 0x10133))),
-                   
+	'''.format(
+            NILADS = 
+                '|'.join(NILADS) \
+                .replace('(', r'\(').replace(')', r'\)'),
+            NUMBER = '''
+                (
+			{NUM}
+		|
+                        \( {NUM} [ij] \)
+		|
+                        {NUM} [+-] {NUM} [ij]
+		|
+			\( {NUM} [+-] {NUM} [ij] \)
+		|
+                        {NUM} [+-] {NUM}i [+-] {NUM}j [+-] {NUM}k
+		|
+                        \( {NUM} [+-] {NUM}i [+-] {NUM}j [+-] {NUM}k \)
+		)
+		'''.format(NUM = '((?:-?(?:[1-9]\d*|0))(?:\.\d+)?)')
         ),
                   re.VERBOSE)
 
@@ -612,12 +616,17 @@ LOOP = re.compile(r'''
                 Call
             |
                 Mat
-            # |
-            #     Solve
             |
                 ∫
+            |
+                Rewrite
+                
+                
+            # |
+            #     Solve
             # |
             #     Match
+            
             |
 		[
 		    ∑
@@ -1688,25 +1697,30 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
 
         if line[1].strip() == 'Error':
             output(execute(tokens, int(line[2])), -1)
-            sys.exit()
+            assert False
             
     if LOOP.search(joined):
         loop = line[1]
         targets = line[2].split()
 
         if loop == 'While':
-            cond, call, *_ = targets
-            last = 0
-            while execute(tokens, int(cond)):
-                last = getvalue(call)
-            return last
+            cond, call, *init = targets
+            if not init: init = 0
+            else: init = getvalue(init[0])
+            
+            while execute(tokens, int(cond), left = init):
+                init = execute(tokens, int(call), left = init)
+            return init
                 
         if loop == 'DoWhile':
-            cond, call, *_ = targets
-            last = getvalue(call)
-            while execute(tokens, int(cond)):
-                last = getvalue(call)
-            return last
+            cond, call, *init = targets
+            if not init: init = 0
+            else: init = getvalue(init[0])
+            
+            init = execute(tokens, int(call), left = init)
+            while execute(tokens, int(cond), left = init):
+                init = execute(tokens, int(call), left = init)
+            return init
 
         if loop == 'For':
             iters, call, *_ = targets
@@ -1803,6 +1817,7 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
 
            return total
 
+        '''
         if loop == 'Match':
             # Incomplete
             pred, val = targets
@@ -1810,6 +1825,7 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
             ret = execute(tokens, int(pred), left = val)
             print('#', ret)
             return ret
+        '''
         
         if loop == 'Then':
             ret = []
@@ -1842,6 +1858,16 @@ def execute(tokens, index = 0, left = None, right = None, args = None):
             expr, a, b, *_ = targets
             return integrals.main(expr, [a, b])
 
+        if loop == 'Rewrite':
+            line, new = targets
+            new = getvalue(new)
+            line = (int(line) - 1) % len(tokens)
+            new_tkn = tokenizer(new, '')
+            if new_tkn:
+                tokens[line] = new_tkn
+                return new
+            return '⊥'
+            
     if EXPR.search(joined):
         if left is not None or right is not None:
             expr = mathparser.parse(line[1])
@@ -2009,6 +2035,9 @@ def tryeval(value, stdin=True):
     try:
         return eval(value)
     except:
+        try: return eval(value.replace('i', 'j'))
+        except: pass
+        
         if not stdin:
             return value
         
@@ -2025,8 +2054,9 @@ def tryeval(value, stdin=True):
             start, end = re.findall(r'[A-Z]', value)
             return Vector(start, end, *axis)
 
-        if re.search(r'^(-?([1-9]\d*|0)(\.\d+)?)[+-](([1-9]\d*|0)(\.\d+)?)i$', value):
-            return eval(value.replace('i', 'j'))
+        if re.search(r'^\(?{NUM}[+-]{NUM}i[+-]{NUM}j[+-]{NUM}k\)?$'.format(NUM = '((?:-?(?:[1-9]\d*|0))(?:\.\d+)?)'), value):
+            coeffs = list(map(ast.literal_eval, re.findall('((?:-?(?:[1-9]\d*|0))(?:\.\d+)?)', value)))
+            return Quaternion(*coeffs)
 
     return value
 
@@ -2068,7 +2098,7 @@ INFIX_ATOMS = {
     '⊔': lambda a, b: a * b // math.gcd(a, b),
     '⊥': tobase,
     '⊤': frombase,
-    '…': lambda a, b: set(range(a, b+1)),
+    '…': lambda a, b: list(range(a, b+1)),
     '⍟': math.log,
     'ⁱ': lambda a, b: list(a).index(b),
     'ⁿ': lambda a, b: a[b % len(a)],
@@ -2141,7 +2171,7 @@ PREFIX_ATOMS = {
     '℘': powerset,
     'ℑ': lambda a: complex(a).imag,
     'ℜ': lambda a: complex(a).real,
-    '∁': lambda a: complex(a).conjugate,
+    '∁': lambda a: a.conjugate if hasattr(a, 'conjugate') else a,
     '≺': lambda a: a - 1,
     '≻': lambda a: a + 1,
     '∪': deduplicate,
@@ -2184,10 +2214,10 @@ SURROUND_ATOMS = {
     '⌈⌉': math.ceil,
     '⌊⌋': math.floor,
     '⌈⌋': int,
-    '[]': lambda a: set(range(a+1)) if type(a) == int else list(a),
-    '[)': lambda a: set(range(a)),
-    '(]': lambda a: set(range(1, a+1)),
-    '()': lambda a: set(range(1, a)),
+    '[]': lambda a: list(range(a+1)) if type(a) == int else list(a),
+    '[)': lambda a: list(range(a)),
+    '(]': lambda a: list(range(1, a+1)),
+    '()': lambda a: list(range(1, a)),
     '{}': set,
     '""': str,
     '‖‖': abs,
@@ -2292,6 +2322,8 @@ NILAD_ATOMS = {
     'δₛ':   sqrt(2) + 1,
     'ε₀':   8.8541878128 * 10 ** -12,
     'θₘ':   atan(sqrt(2)),
+    'α':    π / ln(2),
+    'β':    π ** 2 / (12 * ln(2)),
     'μ':    1.45136923488338105028396848589202744949303228,
     'φ':    (sqrt(5) + 1) / 2,
     '∅':    set(),
@@ -2305,6 +2337,7 @@ NILAD_ATOMS = {
     chr(0x2102) : InfSet(chr(0x2102),  lambda a: isinstance(a, complex)),                           # C
     chr(0x1d53c): InfSet(chr(0x1d53c), lambda a: a % 2 == 0, True, k = 0),                          # E
     chr(0x1d541): InfSet(chr(0x1d541), lambda a: isinstance(a, float) and not a.is_integer()),      # J
+    chr(0x210d) : InfSet(chr(0x210d),  lambda a: isinstance(a, Quaternion)),                        # H
     chr(0x1d544): InfSet(chr(0x1d544), lambda a: isinstance(a, Matrix)),                            # M
     chr(0x2115) : InfSet(chr(0x2115),  lambda a: isinstance(a, int) and a > 0, True, k = 1),        # N
     chr(0x1d546): InfSet(chr(0x1d546), lambda a: a % 2 == 1, True, k = 1),                          # O
