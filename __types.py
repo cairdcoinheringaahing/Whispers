@@ -421,7 +421,7 @@ class Matrix:
                     ret += l * r
                 new.add_next(ret)
 
-        return new.value.copy()
+        return Matrix(new.value.copy())
 
     def add(self, other):
         if self.columns != other.columns or self.rows != other.rows:
@@ -601,10 +601,180 @@ class InfSeq:
         self.gen = self.inf()
         return taken
 
+class Quaternion:
 
+    def __init__(self, a, b, c, d):
+        self.a = a
+        self.b = b
+        self.c = c
+        self.d = d
 
+    def __repr__(self):
+        ret = '{}'.format(self.a)
+        if self.b >= 0: ret += '+'
+        ret += '{}i'.format(self.b)
+        if self.c >= 0: ret += '+'
+        ret += '{}j'.format(self.c)
+        if self.d >= 0: ret += '+'
+        ret += '{}k'.format(self.d)
 
+        return ret
 
+    def __iter__(self):
+        return iter((self.a, self.b, self.c, self.d))
+
+    def __neg__(self):
+        return Quaternion(
+            -self.a,
+            -self.b,
+            -self.c,
+            -self.d
+        )
+
+    def __abs__(self):
+        return (self.a ** 2 + self.b ** 2 + self.c ** 2 + self.d ** 2) ** 0.5
+
+    def __add__(self, other):
+        if isinstance(other, Quaternion):
+            return Quaternion(
+                self.a + other.a,
+                self.b + other.b,
+                self.c + other.c,
+                self.d + other.d
+            )
+
+        if isinstance(other, (int, float)):
+            return Quaternion(
+                self.a + other,
+                self.b,
+                self.c,
+                self.d
+            )
+
+        if isinstance(other, complex):
+            return Quaternion(
+                self.a + other.real,
+                self.b + other.imag,
+                self.c,
+                delf.d
+            )
+
+        raise TypeError
+
+    def __radd__(self, other):
+        return self + other
+
+    def __sub__(self, other):
+        if isinstance(other, Quaternion):
+            return Quaternion(
+                self.a - other.a,
+                self.b - other.b,
+                self.c - other.c,
+                self.d - other.d
+            )
+
+        if isinstance(other, (int, float)):
+            return Quaternion(
+                self.a - other,
+                self.b,
+                self.c,
+                self.d
+            )
+
+        if isinstance(other, complex):
+            return Quaternion(
+                self.a - other.real,
+                self.b - other.imag,
+                self.c,
+                delf.d
+            )
+
+        raise TypeError
+
+    def __rsub__(self, other):
+        return -(self - other)
+
+    def __mul__(self, other):
+        if isinstance(other, Quaternion):
+            x, y, z, w = other
+            p = Matrix([[self.a], [self.b], [self.c], [self.d]])
+            q = Matrix(
+                [
+                    [ x, -y, -z, -w],
+                    [ y,  x,  w, -z],
+                    [ z, -w,  x,  y],
+                    [ w,  z, -y,  x]
+                ]
+            )
+            return Quaternion(*(q * p).transpose().value[0])
+
+        if isinstance(other, complex):
+            return self * Quaternion(other.real, other.imag, 0, 0)
+
+        if isinstance(other, (int, float)):
+            return Quaternion(
+                self.a * other,
+                self.b * other,
+                self.c * other,
+                self.d * other
+            )
+
+        raise TypeError
+
+    def __rmul__(self, other):
+        if isinstance(other, complex):
+            return Quaternion(other.real, other.imag, 0, 0) * self
+
+        if isinstance(other, (int, float)):
+            return Quaternion(
+                self.a * other,
+                self.b * other,
+                self.c * other,
+                self.d * other
+            )
+
+        raise TypeError
+
+    def __truediv__(self, other):
+        if isinstance(other, Quaternion):
+            return self * other.inverse
+
+        if isinstance(other, complex):
+            return self / Quaternion(other.real, other.imag, 0, 0)
+
+        if isinstance(other, (int, float)):
+            return Quaternion(
+                self.a / other,
+                self.b / other,
+                self.c / other,
+                self.d / other
+            )
+
+        raise TypeError
+
+    def __rtruediv__(self, other):
+        if isinstance(other, complex):
+            return Quaternion(other.real, other.imag, 0, 0) / self
+
+        if isinstance(other, (int, float)):
+            return Quaternion(
+                other / self.a,
+                other / self.b,
+                other / self.c,
+                other / self.d
+            )
+
+        raise TypeError
+
+    @property
+    def inverse(self):
+        return self.conjugate / abs(self)
+
+    @property
+    def conjugate(self):
+        return Quaternion(self.a, -self.b, -self.c, -self.d)
+
+    
 
 
 
