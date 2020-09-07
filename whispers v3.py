@@ -2426,7 +2426,7 @@ FUNCTIONS = {
     '∫cos':             sin,
     '∫tan':             lambda a: ln(sec(a)),
     '∫sec':             lambda a: ln(sec(a) + tan(a)),
-    '∫csc':             lambda a: -ln(csc(a) + coth(a)),
+    '∫csc':             lambda a: -ln(csc(a) + cot(a)),
     '∫cot':             lambda a: ln(sin(a)),
     
     '∫arcsin':          lambda a: a * asin(a) + sqrt(1 - a ** 2),
