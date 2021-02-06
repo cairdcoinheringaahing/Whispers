@@ -79,10 +79,9 @@ square = lambda a: a ** 2
 CHARACTERISTIC = 0
 
 # String constants
-
 # ₀₁₂₃₄₅₆₇₈₉⁰¹²³⁴⁵⁶⁷⁸⁹
 
-INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ∓∕∠≮≯≰≱∧∨⋇⊼⊽⊿j≪≫⊈⊉½→∥∦⟂⊾∡√CP?∔∸δMζΓγΒ⊞⋕⋚⋛⟌⧺⧻⨥⨧⨪⩱⩲'
+INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗˡ∓∕∠≮≯≰≱∧∨⋇⊼⊽⊿j≪≫⊈⊉½→∥∦⟂⊾∡√CP?∔∸δMζΓγΒ⊞⋕⋚⋛⟌⧺⧻⨥⨧⨪⩱⩲'
 INFIXES = ['∂Β']
 PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎R…∛\-!∂∫IZ⊦⨊"
 POSTFIX = '!’#²³ᵀᴺ°ᴿ₁ᶜ?⊹'
@@ -2105,6 +2104,7 @@ INFIX_ATOMS = {
     '‖': lambda a, b: (list(a) if hasattr(a, '__iter__') else [a]) + (list(b) if hasattr(a, '__iter__') else [b]),
     'ᶠ': lambda a, b: a[:b] if hasattr(a, '__iter__') else tobase(a, 10)[:b],
     'ᵗ': lambda a, b: a[b:] if hasattr(a, '__iter__') else tobase(a, 10)[b:],
+	'ˡ': lambda a, b: a[len(a)-b:] if hasattr(a, '__iter__') else tobase(a, 10)[len(tobase(a, 10))-b:],
     '∓': lambda a, b: [a-b, a+b],
     '∕': lambda a, b: int(a / b),
     '∠': math.atan2,
