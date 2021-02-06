@@ -15,7 +15,7 @@ U = chr(120140)
 e = math.e
 
 PRED    = B + 'ℂℕℙℝ' + U + 'ℤ¬⊤⊥'
-INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗ'
+INFIX   = '=≠><≥≤+-±⋅×÷*%∆∩∪⊆⊂⊄⊅⊃⊇∖∈∉«»∤∣⊓⊔∘⊤⊥…⍟ⁱⁿ‖ᶠᵗˡ'
 PREFIX  = "∑∏#√?'Γ∤℘ℑℜ∁≺≻∪⍎"
 POSTFIX = '!’#²³ᵀᴺ'
 OPEN    = '|(\[⌈⌊{"'
@@ -208,6 +208,7 @@ INFIX_ATOMS = {
     '‖':lambda a, b: (list(a) if isinstance(a, (list, set)) else [a]) + (list(b) if isinstance(b, (list, set)) else [b]),
     'ᶠ':lambda a, b: a[:b],
     'ᵗ':lambda a, b: a[b:],
+	'ˡ':lambda a, b: a[len(a)-b:],
 
 }
 
