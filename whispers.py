@@ -482,6 +482,7 @@ INFIX_ATOMS = {
     '‖':lambda a, b: (list(a) if isinstance(a, (list, set)) else [a]) + (list(b) if isinstance(b, (list, set)) else [b]),
     'ᶠ':lambda a, b: a[:b],
     'ᵗ':lambda a, b: a[b:],
+	'ˡ':lambda a, b: a[len(a)-b:],
     '∓':lambda a, b: [a-b, a+b],
     '∕':lambda a, b: int(a / b),
     '∠':lambda a, b: math.atan2(a, b),
